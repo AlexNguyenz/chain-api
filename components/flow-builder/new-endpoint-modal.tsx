@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -33,7 +33,7 @@ export function NewEndpointModal({ open, onOpenChange, editEndpoint }: NewEndpoi
   const updateEndpoint = useEndpointStore((state) => state.updateEndpoint)
 
   // Reset form when modal opens/closes or editEndpoint changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (open && editEndpoint) {
       // Edit mode - populate form with existing data
       setFormData({

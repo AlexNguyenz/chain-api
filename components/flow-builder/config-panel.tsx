@@ -8,10 +8,11 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { type Endpoint } from '@/store/endpoints'
 
 interface ConfigPanelProps {
   selectedNode: string | null
-  selectedNodeData?: any
+  selectedNodeData?: Endpoint | null
 }
 
 export function ConfigPanel({ selectedNode, selectedNodeData }: ConfigPanelProps) {

@@ -6,7 +6,6 @@ import {
   Node,
   Edge,
   addEdge,
-  Connection,
   useNodesState,
   useEdgesState,
   Controls,
@@ -20,20 +19,20 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import { EndpointNode } from './endpoint-node'
+import { type Endpoint } from '@/store/endpoints'
 
 const nodeTypes = {
   endpoint: EndpointNode,
 }
 
 interface FlowCanvasProps {
-  selectedNode: string | null
-  onNodeSelect: (nodeId: string | null, nodeData?: any) => void
+  onNodeSelect: (nodeId: string | null, nodeData?: Endpoint | null) => void
 }
 
 const initialNodes: Node[] = []
 const initialEdges: Edge[] = []
 
-export function FlowCanvas({ selectedNode, onNodeSelect }: FlowCanvasProps) {
+export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
@@ -89,7 +88,7 @@ export function FlowCanvas({ selectedNode, onNodeSelect }: FlowCanvasProps) {
 
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      onNodeSelect(node.id, node.data)
+      onNodeSelect(node.id, node.data as unknown as Endpoint)
     },
     [onNodeSelect]
   )

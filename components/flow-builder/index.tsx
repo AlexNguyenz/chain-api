@@ -9,10 +9,10 @@ import { type Endpoint } from '@/store/endpoints'
 
 export function FlowBuilder() {
   const [selectedNode, setSelectedNode] = useState<string | null>(null)
-  const [selectedNodeData, setSelectedNodeData] = useState<any>(null)
+  const [selectedNodeData, setSelectedNodeData] = useState<Endpoint | null>(null)
   const [editEndpoint, setEditEndpoint] = useState<Endpoint | null>(null)
 
-  const handleNodeSelect = (nodeId: string | null, nodeData?: any) => {
+  const handleNodeSelect = (nodeId: string | null, nodeData?: Endpoint | null) => {
     setSelectedNode(nodeId)
     setSelectedNodeData(nodeData || null)
   }
@@ -37,7 +37,6 @@ export function FlowBuilder() {
         {/* Cột 2: React Flow Canvas - 50% */}
         <div className="w-1/2 bg-muted/30 flex flex-col">
           <FlowCanvasWrapper
-            selectedNode={selectedNode}
             onNodeSelect={handleNodeSelect}
           />
         </div>
