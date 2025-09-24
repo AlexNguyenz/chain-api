@@ -11,9 +11,10 @@ import { Separator } from '@/components/ui/separator'
 
 interface ConfigPanelProps {
   selectedNode: string | null
+  selectedNodeData?: any
 }
 
-export function ConfigPanel({ selectedNode }: ConfigPanelProps) {
+export function ConfigPanel({ selectedNode, selectedNodeData }: ConfigPanelProps) {
   const [config, setConfig] = useState({
     timeout: 30000,
     retries: 3,
@@ -44,7 +45,19 @@ export function ConfigPanel({ selectedNode }: ConfigPanelProps) {
     <div className="h-full flex flex-col">
       <div className="p-4">
         <h2 className="text-lg font-semibold">Configuration</h2>
-        <div className="text-sm text-muted-foreground mt-1">Node: {selectedNode}</div>
+        {selectedNodeData ? (
+          <div className="mt-2 space-y-1">
+            <div className="text-sm font-medium">{selectedNodeData.name}</div>
+            <div className="text-xs text-muted-foreground">
+              {selectedNodeData.method} {selectedNodeData.path}
+            </div>
+            <div className="text-xs text-muted-foreground">{selectedNodeData.description}</div>
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground mt-1">
+            Node: {selectedNode || 'None selected'}
+          </div>
+        )}
         <Separator className="mt-3" />
       </div>
 

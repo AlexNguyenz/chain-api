@@ -1,11 +1,36 @@
 'use client'
 
+import React, { useState } from 'react'
 import { Plus, File } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { NewEndpointModal } from './new-endpoint-modal'
+import { type Endpoint } from '@/store/endpoints'
 
-export function Header() {
+interface HeaderProps {
+  editEndpoint?: Endpoint | null
+  onEditEndpointChange?: (endpoint: Endpoint | null) => void
+}
+
+export function Header({ editEndpoint, onEditEndpointChange }: HeaderProps) {
+  const [showEndpointModal, setShowEndpointModal] = useState(false)
+
   const handleNewEndpoint = () => {
-    console.log('Create new endpoint')
+    onEditEndpointChange?.(null) // Clear any existing edit
+    setShowEndpointModal(true)
+  }
+
+  // Open modal when editEndpoint is set
+  React.useEffect(() => {
+    if (editEndpoint) {
+      setShowEndpointModal(true)
+    }
+  }, [editEndpoint])
+
+  const handleModalClose = (open: boolean) => {
+    setShowEndpointModal(open)
+    if (!open) {
+      onEditEndpointChange?.(null) // Clear edit when modal closes
+    }
   }
 
   const handleNewTemplate = () => {
@@ -30,6 +55,12 @@ export function Header() {
           New Template
         </Button>
       </div>
+
+      <NewEndpointModal
+        open={showEndpointModal}
+        onOpenChange={handleModalClose}
+        editEndpoint={editEndpoint}
+      />
     </header>
   )
 }

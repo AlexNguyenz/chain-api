@@ -27,7 +27,7 @@ const nodeTypes = {
 
 interface FlowCanvasProps {
   selectedNode: string | null
-  onNodeSelect: (nodeId: string | null) => void
+  onNodeSelect: (nodeId: string | null, nodeData?: any) => void
 }
 
 const initialNodes: Node[] = []
@@ -89,10 +89,14 @@ export function FlowCanvas({ selectedNode, onNodeSelect }: FlowCanvasProps) {
 
   const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      onNodeSelect(node.id)
+      onNodeSelect(node.id, node.data)
     },
     [onNodeSelect]
   )
+
+  const onPaneClick = useCallback(() => {
+    onNodeSelect(null, null)
+  }, [onNodeSelect])
 
   return (
     <div className="h-full" ref={reactFlowWrapper}>
@@ -106,6 +110,7 @@ export function FlowCanvas({ selectedNode, onNodeSelect }: FlowCanvasProps) {
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeClick={onNodeClick}
+        onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         fitView
       >
