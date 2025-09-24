@@ -1,6 +1,7 @@
 'use client'
 
 import { Plus, File } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export function Header() {
   const handleNewEndpoint = () => {
@@ -12,28 +13,22 @@ export function Header() {
   }
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6">
+    <header className="h-16 bg-background border-b flex items-center justify-between px-6">
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">API Flow Builder</h1>
-        <p className="text-sm text-gray-600">Design and configure your API workflows</p>
+        <h1 className="text-xl font-semibold">API Flow Builder</h1>
+        <p className="text-sm text-muted-foreground">Design and configure your API workflows</p>
       </div>
 
-      <div className="flex items-center space-x-3">
-        <button
-          onClick={handleNewEndpoint}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={16} />
-          <span>New Endpoint</span>
-        </button>
+      <div className="flex items-center gap-3">
+        <Button onClick={handleNewEndpoint}>
+          <Plus />
+          New Endpoint
+        </Button>
 
-        <button
-          onClick={handleNewTemplate}
-          className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-        >
-          <File size={16} />
-          <span>New Template</span>
-        </button>
+        <Button onClick={handleNewTemplate} variant="secondary">
+          <File />
+          New Template
+        </Button>
       </div>
     </header>
   )
