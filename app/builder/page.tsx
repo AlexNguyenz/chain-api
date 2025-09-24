@@ -1,7 +1,11 @@
-import React from "react";
+'use client'
 
-const Builder = () => {
-  return <div>Builder</div>;
-};
+import { FlowBuilder } from '@/components/flow-builder'
 
-export default Builder;
+export default function BuilderPage() {
+  return (
+    <div className="h-screen overflow-hidden">
+      <FlowBuilder />
+    </div>
+  )
+}
