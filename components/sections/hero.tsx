@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Zap, Link2, TestTube } from "lucide-react";
+import Link from "next/link";
+import { ROUTE } from "@/constants/route";
 
 export function Hero() {
   return (
@@ -29,10 +31,12 @@ export function Hero() {
             </p>
           </div>
           <div className="flex justify-center">
-            <Button size="lg" className="h-14 px-10 text-lg font-semibold">
-              Get Started
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
+            <Link href={ROUTE.BUILDER}>
+              <Button size="lg" className="h-14 px-10 text-lg font-semibold">
+                Get Started
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500 font-medium pt-4">
             <div className="flex items-center">
