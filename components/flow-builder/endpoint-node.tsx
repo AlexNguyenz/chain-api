@@ -19,6 +19,8 @@ interface EndpointData {
   executionStatus?: ExecutionStatus;
   executionTime?: number;
   executionError?: string;
+  requestData?: any;
+  responseData?: any;
 }
 
 export const EndpointNode = memo(({ data, selected }: NodeProps) => {
@@ -39,7 +41,7 @@ export const EndpointNode = memo(({ data, selected }: NodeProps) => {
 
   return (
     <div
-      className={`p-3 shadow-md rounded-lg border-1 w-[250px] relative ${getMethodCardColor(
+      className={`p-4 shadow-md rounded-lg border-1 w-[250px] relative ${getMethodCardColor(
         endpointData.method
       )} ${selected ? "border-2 bg-background" : ""}`}
     >

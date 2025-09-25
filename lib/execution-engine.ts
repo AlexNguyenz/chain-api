@@ -27,7 +27,7 @@ export interface ExecutionResult {
 
 export interface ExecutionCallbacks {
   onNodeStart?: (nodeId: string) => void;
-  onNodeComplete?: (nodeId: string) => void;
+  onNodeComplete?: (nodeId: string, requestData?: any, responseData?: any) => void;
   onNodeError?: (nodeId: string, error: string) => void;
 }
 
@@ -109,21 +109,49 @@ export class APIChainExecutor {
     const node = this.nodes.find(n => n.id === nodeId);
     if (!node) return;
 
+    let requestData: any = null;
+    let responseData: any = null;
+
     try {
       // Bắt đầu node
       this.callbacks?.onNodeStart?.(nodeId);
 
       // Thực thi node
       if (node.type === 'endpoint') {
-        await this.executeEndpoint(node);
+        const result = await this.executeEndpoint(node);
+        requestData = result.requestData;
+        responseData = result.responseData;
       } else if (node.type === 'flowControl') {
         await this.executeFlowControl(node);
       }
 
       // Chỉ gọi complete khi không có lỗi
-      this.callbacks?.onNodeComplete?.(nodeId);
+      this.callbacks?.onNodeComplete?.(nodeId, requestData, responseData);
 
     } catch (error) {
+      // Khi có lỗi, vẫn cần lưu requestData và error info
+      if (node.type === 'endpoint') {
+        const { method, path } = node.data;
+        // Sử dụng dữ liệu riêng của node
+        const nodeRequestBody = node.data.requestBody || null;
+
+        requestData = {
+          method,
+          path,
+          headers: { 'Content-Type': 'application/json' },
+          body: nodeRequestBody
+        };
+
+        responseData = {
+          status: 500, // Default error status
+          error: error instanceof Error ? error.message : 'Unknown error',
+          data: null
+        };
+
+        // Vẫn cần gọi onNodeComplete để update UI với error data
+        this.callbacks?.onNodeComplete?.(nodeId, requestData, responseData);
+      }
+
       this.callbacks?.onNodeError?.(nodeId, error instanceof Error ? error.message : 'Unknown error');
     }
 
@@ -182,12 +210,33 @@ export class APIChainExecutor {
   /**
    * Thực thi API Endpoint node
    */
-  private async executeEndpoint(node: Node): Promise<void> {
+  private async executeEndpoint(node: Node): Promise<{ requestData: any, responseData: any }> {
     const { method, path } = node.data;
 
+    // Mỗi endpoint sử dụng dữ liệu riêng của node, không share context
+    const nodeRequestBody = node.data.requestBody || null;
+
+    const requestData = {
+      method,
+      path,
+      headers: { 'Content-Type': 'application/json' },
+      body: nodeRequestBody
+    };
+
+    // Tạo config với data riêng của node
+    const config = {
+      data: nodeRequestBody,
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 30000
+    };
+
     // Thực hiện API call thật
-    const response = await this.makeAPICall(method as string, path as string, {});
-    this.context.currentData = response.data;
+    const response = await this.makeAPICall(method as string, path as string, config);
+
+    return {
+      requestData,
+      responseData: response
+    };
   }
 
   /**

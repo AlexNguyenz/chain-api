@@ -23,3 +23,20 @@ export function getMethodColor(method: HTTPMethod): string {
 export function getMethodCardColor(method: HTTPMethod): string {
   return METHOD_CARD_COLORS[method];
 }
+
+// HTTP Status Code colors
+export function getStatusCodeColor(statusCode: number): string {
+  if (statusCode >= 200 && statusCode < 300) {
+    return "bg-[#49CC90] text-white"; // Success - Green
+  }
+  if (statusCode >= 300 && statusCode < 400) {
+    return "bg-[#61AFFE] text-white"; // Redirect - Blue
+  }
+  if (statusCode >= 400 && statusCode < 500) {
+    return "bg-[#FCA130] text-white"; // Client Error - Orange
+  }
+  if (statusCode >= 500) {
+    return "bg-[#F93E3E] text-white"; // Server Error - Red
+  }
+  return "bg-gray-400 text-white"; // Unknown
+}

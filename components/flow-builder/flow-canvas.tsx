@@ -17,10 +17,11 @@ import {
   ReactFlowInstance
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Play } from 'lucide-react'
+import { Play, Loader2 } from 'lucide-react'
 
 import { EndpointNode } from './endpoint-node'
 import { FlowControlNode } from './flow-control-node'
+import { RequestDetailsModal } from './request-details-modal'
 import { type Endpoint } from '@/store/endpoints'
 import { Button } from '@/components/ui/button'
 import { APIChainExecutor } from '@/lib/execution-engine'
@@ -44,6 +45,8 @@ export function FlowCanvas({ onNodeSelect, onNodesChange: onNodesChangeCallback,
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
+  const [selectedNodeForDetails, setSelectedNodeForDetails] = useState<Node | null>(null)
+  const [isExecuting, setIsExecuting] = useState(false)
 
   // Sync nodes and edges with parent component
   React.useEffect(() => {
@@ -122,6 +125,12 @@ export function FlowCanvas({ onNodeSelect, onNodesChange: onNodesChangeCallback,
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
       onNodeSelect(node.id, node.data as unknown as Endpoint)
+
+      // Nếu là endpoint node đã execute thì mở modal details
+      if (node.type === 'endpoint' &&
+          (node.data.executionStatus === 'success' || node.data.executionStatus === 'error')) {
+        setSelectedNodeForDetails(node)
+      }
     },
     [onNodeSelect]
   )
@@ -142,11 +151,13 @@ export function FlowCanvas({ onNodeSelect, onNodesChange: onNodesChangeCallback,
   }, [setNodes])
 
   const handleRunFlow = useCallback(async () => {
-    if (nodes.length === 0) {
+    if (nodes.length === 0 || isExecuting) {
       return
     }
 
     try {
+      setIsExecuting(true)
+
       // Reset all nodes to idle state
       setNodes((nds) =>
         nds.map((node) => ({
@@ -160,7 +171,23 @@ export function FlowCanvas({ onNodeSelect, onNodesChange: onNodesChangeCallback,
       // Execute with real-time status callbacks
       await executor.executeWithCallbacks({
         onNodeStart: (nodeId) => updateNodeStatus(nodeId, 'loading'),
-        onNodeComplete: (nodeId) => updateNodeStatus(nodeId, 'success'),
+        onNodeComplete: (nodeId, requestData, responseData) => {
+          setNodes((nds) =>
+            nds.map((node) =>
+              node.id === nodeId
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      executionStatus: 'success',
+                      requestData,
+                      responseData
+                    }
+                  }
+                : node
+            )
+          )
+        },
         onNodeError: (nodeId) => updateNodeStatus(nodeId, 'error')
       })
 
@@ -168,8 +195,10 @@ export function FlowCanvas({ onNodeSelect, onNodesChange: onNodesChangeCallback,
     } catch (error) {
       console.error('Flow execution error:', error)
       // Only log error, no alert needed
+    } finally {
+      setIsExecuting(false)
     }
-  }, [nodes, edges, setNodes, updateNodeStatus])
+  }, [nodes, edges, setNodes, updateNodeStatus, isExecuting])
 
   const handleClearFlow = useCallback(() => {
     if (nodes.length === 0 && edges.length === 0) {
@@ -189,15 +218,21 @@ export function FlowCanvas({ onNodeSelect, onNodesChange: onNodesChangeCallback,
       <div className="absolute top-4 right-4 z-10 flex gap-2">
         <Button
           onClick={handleRunFlow}
-          className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md flex items-center gap-2"
+          disabled={isExecuting}
+          className="bg-black hover:bg-gray-800 disabled:bg-gray-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
         >
-          <Play className="h-4 w-4" />
-          Run Flow
+          {isExecuting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )}
+          {isExecuting ? 'Executing...' : 'Run Flow'}
         </Button>
         <Button
           onClick={handleClearFlow}
+          disabled={isExecuting}
           variant="outline"
-          className="bg-white hover:bg-gray-50 text-black border px-4 py-2 rounded-md"
+          className="bg-white hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400 text-black border px-4 py-2 rounded-md"
         >
           Clear
         </Button>
@@ -221,6 +256,21 @@ export function FlowCanvas({ onNodeSelect, onNodesChange: onNodesChangeCallback,
         <MiniMap />
         <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
       </ReactFlow>
+
+      {/* Request Details Modal */}
+      {selectedNodeForDetails && (
+        <RequestDetailsModal
+          isOpen={!!selectedNodeForDetails}
+          onClose={() => setSelectedNodeForDetails(null)}
+          nodeData={{
+            method: selectedNodeForDetails.data.method as string,
+            path: selectedNodeForDetails.data.path as string,
+            name: selectedNodeForDetails.data.name as string,
+            requestData: selectedNodeForDetails.data.requestData,
+            responseData: selectedNodeForDetails.data.responseData,
+          }}
+        />
+      )}
     </div>
   )
 }
