@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Node, Edge } from "@xyflow/react";
 import { Header } from "./header";
 import { EndpointList } from "./endpoint-list";
 import { FlowControlList } from "./flow-control-list";
-import { TemplateList } from "./template-list";
+import { TemplatesTab } from "@/components/templates/templates-tab";
 import { FlowCanvasWrapper } from "./flow-canvas";
 import { ConfigPanel } from "./config-panel";
 import { FlowExecutor } from "./flow-executor";
 import { type Endpoint } from "@/store/endpoints";
+import { useTemplateStore } from "@/store/templates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function FlowBuilder() {
@@ -20,6 +21,9 @@ export function FlowBuilder() {
   const [editEndpoint, setEditEndpoint] = useState<Endpoint | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+
+  const { selectedTemplate, updateTemplateFlow } = useTemplateStore();
 
   const handleNodeSelect = (
     nodeId: string | null,
@@ -29,13 +33,50 @@ export function FlowBuilder() {
     setSelectedNodeData(nodeData || null);
   };
 
+  // Load template data when selected template changes
+  useEffect(() => {
+    console.log('Loading template:', selectedTemplate?.name, 'ID:', selectedTemplate?.id);
+
+    // Clear selected nodes
+    setSelectedNode(null);
+    setSelectedNodeData(null);
+
+    if (selectedTemplate) {
+      console.log('Template nodes:', selectedTemplate.nodes.length, 'edges:', selectedTemplate.edges.length);
+      // Load template data
+      setNodes(selectedTemplate.nodes || []);
+      setEdges(selectedTemplate.edges || []);
+    } else {
+      console.log('No template selected, clearing nodes/edges');
+      setNodes([]);
+      setEdges([]);
+    }
+  }, [selectedTemplate?.id]); // Only when template ID changes
+
   const handleNodesChange = (newNodes: Node[]) => {
+    console.log('Parent handleNodesChange:', newNodes.length, 'nodes');
     setNodes(newNodes);
   };
 
   const handleEdgesChange = (newEdges: Edge[]) => {
+    console.log('Parent handleEdgesChange:', newEdges.length, 'edges');
     setEdges(newEdges);
   };
+
+  // Auto-save to template when nodes or edges change (debounced)
+  useEffect(() => {
+    // Skip if no template
+    if (!selectedTemplate) return;
+
+    console.log('Auto-save check - nodes:', nodes.length, 'edges:', edges.length);
+
+    const timeoutId = setTimeout(() => {
+      console.log('Auto-saving template:', selectedTemplate.name);
+      updateTemplateFlow(selectedTemplate.id, nodes, edges);
+    }, 3000); // 3 seconds debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [nodes, edges, selectedTemplate?.id, updateTemplateFlow]); // Include all deps
 
   return (
     <div className="flex flex-col h-full bg-background overflow-hidden">
@@ -72,7 +113,7 @@ export function FlowBuilder() {
               <FlowControlList />
             </TabsContent>
             <TabsContent value="templates" className="flex-1 mt-0 h-0">
-              <TemplateList />
+              <TemplatesTab />
             </TabsContent>
           </Tabs>
         </div>
@@ -80,9 +121,13 @@ export function FlowBuilder() {
         {/* Cột 2: React Flow Canvas - 50% */}
         <div className="w-1/2 bg-muted/30 flex flex-col">
           <FlowCanvasWrapper
+            nodes={nodes}
+            edges={edges}
             onNodeSelect={handleNodeSelect}
             onNodesChange={handleNodesChange}
             onEdgesChange={handleEdgesChange}
+            onReactFlowInit={setReactFlowInstance}
+            selectedTemplateId={selectedTemplate?.id}
           />
         </div>
 

@@ -1,47 +1,57 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { Plus, File } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { NewEndpointModal } from './new-endpoint-modal'
-import { type Endpoint } from '@/store/endpoints'
+import React, { useState } from "react";
+import { Plus, File } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { NewEndpointModal } from "./new-endpoint-modal";
+import { CreateTemplateModal } from "@/components/templates/create-template-modal";
+import { type Endpoint } from "@/store/endpoints";
+import { useTemplateStore } from "@/store/templates";
 
 interface HeaderProps {
-  editEndpoint?: Endpoint | null
-  onEditEndpointChange?: (endpoint: Endpoint | null) => void
+  editEndpoint?: Endpoint | null;
+  onEditEndpointChange?: (endpoint: Endpoint | null) => void;
 }
 
 export function Header({ editEndpoint, onEditEndpointChange }: HeaderProps) {
-  const [showEndpointModal, setShowEndpointModal] = useState(false)
+  const [showEndpointModal, setShowEndpointModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const selectedTemplate = useTemplateStore((state) => state.selectedTemplate);
 
   const handleNewEndpoint = () => {
-    onEditEndpointChange?.(null) // Clear any existing edit
-    setShowEndpointModal(true)
-  }
+    onEditEndpointChange?.(null); // Clear any existing edit
+    setShowEndpointModal(true);
+  };
 
   // Open modal when editEndpoint is set
   React.useEffect(() => {
     if (editEndpoint) {
-      setShowEndpointModal(true)
+      setShowEndpointModal(true);
     }
-  }, [editEndpoint])
+  }, [editEndpoint]);
 
   const handleModalClose = (open: boolean) => {
-    setShowEndpointModal(open)
+    setShowEndpointModal(open);
     if (!open) {
-      onEditEndpointChange?.(null) // Clear edit when modal closes
+      onEditEndpointChange?.(null); // Clear edit when modal closes
     }
-  }
+  };
 
   const handleNewTemplate = () => {
-    console.log('Create new template')
-  }
+    setShowTemplateModal(true);
+  };
 
   return (
     <header className="h-16 bg-background border-b flex items-center justify-between px-6">
       <div>
-        <h1 className="text-xl font-semibold">API Flow Builder</h1>
-        <p className="text-sm text-muted-foreground">Design and configure your API workflows</p>
+        {selectedTemplate && selectedTemplate.name && (
+          <h1 className="text-xl font-semibold">{selectedTemplate.name}</h1>
+        )}
+        {selectedTemplate && selectedTemplate.description && (
+          <p className="text-sm text-muted-foreground">
+            {selectedTemplate.description}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-3">
@@ -61,6 +71,11 @@ export function Header({ editEndpoint, onEditEndpointChange }: HeaderProps) {
         onOpenChange={handleModalClose}
         editEndpoint={editEndpoint}
       />
+
+      <CreateTemplateModal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+      />
     </header>
-  )
+  );
 }

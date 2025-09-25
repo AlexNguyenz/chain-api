@@ -100,7 +100,9 @@ export function RequestDetailsModal({
             <div>
               {/* Overview */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Overview</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                  Overview
+                </h3>
                 <div className="flex items-center gap-2 mb-2">
                   <Badge
                     className={`text-xs font-bold justify-center rounded-sm w-16 h-6 ${getMethodColor(
@@ -111,9 +113,7 @@ export function RequestDetailsModal({
                   </Badge>
                 </div>
                 <div className="text-sm text-gray-600 bg-gray-100 p-2 rounded font-mono">
-                  {nodeData.path.startsWith("http")
-                    ? nodeData.path
-                    : `https://api.example.com${nodeData.path}`}
+                  {nodeData.path}
                 </div>
               </div>
 
@@ -132,7 +132,9 @@ export function RequestDetailsModal({
             <div>
               {nodeData.responseData?.status && (
                 <div className="mb-6">
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Status</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">
+                    Status
+                  </h3>
                   <Badge
                     className={`text-xs font-bold justify-center rounded-sm w-16 h-6 ${getStatusCodeColor(
                       nodeData.responseData.status
