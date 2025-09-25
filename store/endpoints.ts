@@ -1,56 +1,92 @@
-import { create } from 'zustand'
+import { create } from "zustand";
 
 export interface Endpoint {
-  id: string
-  name: string
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE'
-  path: string
-  description: string
+  id: string;
+  name: string;
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  path: string;
+  description: string;
 }
 
 interface EndpointStore {
-  endpoints: Endpoint[]
-  addEndpoint: (endpoint: Omit<Endpoint, 'id'>) => void
-  removeEndpoint: (id: string) => void
-  updateEndpoint: (id: string, endpoint: Partial<Endpoint>) => void
+  endpoints: Endpoint[];
+  addEndpoint: (endpoint: Omit<Endpoint, "id">) => void;
+  removeEndpoint: (id: string) => void;
+  updateEndpoint: (id: string, endpoint: Partial<Endpoint>) => void;
 }
 
 export const useEndpointStore = create<EndpointStore>((set) => ({
   endpoints: [
     {
-      id: '1',
-      name: 'Get Users',
-      method: 'GET',
-      path: '/api/users',
-      description: 'Retrieve all users',
+      id: "1",
+      name: "Get Users",
+      method: "GET",
+      path: "/api/users",
+      description: "Retrieve all users",
     },
     {
-      id: '2',
-      name: 'Create User',
-      method: 'POST',
-      path: '/api/users',
-      description: 'Create a new user',
+      id: "2",
+      name: "Create User",
+      method: "POST",
+      path: "/api/users",
+      description: "Create a new user",
     },
     {
-      id: '3',
-      name: 'Update User',
-      method: 'PUT',
-      path: '/api/users/:id',
-      description: 'Update user information',
+      id: "3",
+      name: "Update User",
+      method: "PUT",
+      path: "/api/users/:id",
+      description: "Update user information",
     },
     {
-      id: '4',
-      name: 'Delete User',
-      method: 'DELETE',
-      path: '/api/users/:id',
-      description: 'Delete a user',
+      id: "4",
+      name: "Delete User",
+      method: "DELETE",
+      path: "/api/users/:id",
+      description: "Delete a user",
     },
     {
-      id: '5',
-      name: 'Get Posts',
-      method: 'GET',
-      path: '/api/posts',
-      description: 'Retrieve all posts',
+      id: "5",
+      name: "Get Posts",
+      method: "GET",
+      path: "/api/posts",
+      description: "Retrieve all posts",
+    },
+
+    {
+      id: "1",
+      name: "Get Users",
+      method: "GET",
+      path: "/api/users",
+      description: "Retrieve all users",
+    },
+    {
+      id: "2",
+      name: "Create User",
+      method: "POST",
+      path: "/api/users",
+      description: "Create a new user",
+    },
+    {
+      id: "3",
+      name: "Update User",
+      method: "PUT",
+      path: "/api/users/:id",
+      description: "Update user information",
+    },
+    {
+      id: "4",
+      name: "Delete User",
+      method: "DELETE",
+      path: "/api/users/:id",
+      description: "Delete a user",
+    },
+    {
+      id: "5",
+      name: "Get Posts",
+      method: "GET",
+      path: "/api/posts",
+      description: "Retrieve all posts",
     },
   ],
 
@@ -76,4 +112,4 @@ export const useEndpointStore = create<EndpointStore>((set) => ({
         endpoint.id === id ? { ...endpoint, ...updatedEndpoint } : endpoint
       ),
     })),
-}))
+}));

@@ -21,7 +21,7 @@ export const EndpointNode = memo(({ data, selected }: NodeProps) => {
     <div
       className={`p-3 shadow-md rounded-lg border-1 w-[250px] ${getMethodCardColor(
         endpointData.method
-      )} ${selected ? "border-2" : ""}`}
+      )} ${selected ? "border-2 bg-background" : ""}`}
     >
       <Handle
         type="target"

@@ -7,7 +7,6 @@ import { Separator } from "@/components/ui/separator";
 import { useEndpointStore, type Endpoint } from "@/store/endpoints";
 import { EndpointItem } from "./endpoint-item";
 
-
 interface EndpointListProps {
   onEditEndpoint?: (endpoint: Endpoint) => void;
 }
