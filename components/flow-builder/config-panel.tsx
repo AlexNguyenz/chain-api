@@ -10,6 +10,7 @@ import {
 } from "@/store/templates";
 import { ConfigHeader } from "./config/config-header";
 import { ParametersTab } from "./config/parameters-tab";
+import { HeadersTab } from "./config/headers-tab";
 import { VariablesTab } from "./config/variables-tab";
 import { ActionButtons } from "./config/action-buttons";
 
@@ -26,18 +27,9 @@ export function ConfigPanel({
     selectedTemplate,
     updateEndpointConfig,
     addVariable,
-    updateVariable,
     deleteVariable,
   } = useTemplateStore();
 
-  const [config, setConfig] = useState<EndpointConfig>({
-    baseUrl: "",
-    pathVariables: {},
-    queryParameters: [],
-    headers: [],
-    authorization: undefined,
-    body: { type: "raw", content: "" },
-  });
 
   const [newVariable, setNewVariable] = useState<Variable>({
     name: "",
@@ -45,42 +37,62 @@ export function ConfigPanel({
     description: "",
   });
 
-  const [pathParams, setPathParams] = useState<Array<{
-    key: string;
-    value: string;
-    description?: string;
-    enabled: boolean;
-  }>>([]);
+  const [pathParams, setPathParams] = useState<
+    Array<{
+      key: string;
+      value: string;
+      description?: string;
+      enabled: boolean;
+    }>
+  >([]);
 
-  const [queryParams, setQueryParams] = useState<Array<{
-    key: string;
-    value: string;
-    description?: string;
-    enabled: boolean;
-  }>>([]);
+  const [queryParams, setQueryParams] = useState<
+    Array<{
+      key: string;
+      value: string;
+      description?: string;
+      enabled: boolean;
+    }>
+  >([]);
+
+  const [headers, setHeaders] = useState<
+    Array<{
+      key: string;
+      value: string;
+      description?: string;
+      enabled: boolean;
+    }>
+  >([]);
 
   const variables = selectedTemplate?.variables || [];
-  const currentConfig =
-    selectedTemplate?.endpointConfigs?.[selectedNode || ""] || config;
 
   // Path parameter functions
   const addPathParam = () => {
-    setPathParams(prev => [...prev, {
-      key: '',
-      value: '',
-      description: '',
-      enabled: true
-    }]);
+    setPathParams((prev) => [
+      ...prev,
+      {
+        key: "",
+        value: "",
+        description: "",
+        enabled: true,
+      },
+    ]);
   };
 
   const removePathParam = (index: number) => {
-    setPathParams(prev => prev.filter((_, i) => i !== index));
+    setPathParams((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const updatePathParam = (index: number, field: string, value: string | boolean) => {
-    setPathParams(prev => prev.map((param, i) =>
-      i === index ? { ...param, [field]: value } : param
-    ));
+  const updatePathParam = (
+    index: number,
+    field: string,
+    value: string | boolean
+  ) => {
+    setPathParams((prev) =>
+      prev.map((param, i) =>
+        i === index ? { ...param, [field]: value } : param
+      )
+    );
   };
 
   // Load saved config when node changes
@@ -91,12 +103,14 @@ export function ConfigPanel({
 
       // Load saved path parameters
       if (savedConfig?.pathVariables) {
-        const pathParams = Object.entries(savedConfig.pathVariables).map(([key, value]) => ({
-          key,
-          value: value as string,
-          description: '',
-          enabled: true
-        }));
+        const pathParams = Object.entries(savedConfig.pathVariables).map(
+          ([key, value]) => ({
+            key,
+            value: value as string,
+            description: "",
+            enabled: true,
+          })
+        );
         setPathParams(pathParams);
       } else {
         setPathParams([]);
@@ -108,31 +122,77 @@ export function ConfigPanel({
       } else {
         setQueryParams([]);
       }
+
+      // Load saved headers
+      if (savedConfig?.headers) {
+        setHeaders(savedConfig.headers);
+      } else {
+        setHeaders([]);
+      }
     } else {
       // Clear when no node selected
       setPathParams([]);
       setQueryParams([]);
+      setHeaders([]);
     }
   }, [selectedNode, selectedTemplate]);
 
   // Query parameter functions
   const addQueryParam = () => {
-    setQueryParams(prev => [...prev, {
-      key: '',
-      value: '',
-      description: '',
-      enabled: true
-    }]);
+    setQueryParams((prev) => [
+      ...prev,
+      {
+        key: "",
+        value: "",
+        description: "",
+        enabled: true,
+      },
+    ]);
   };
 
   const removeQueryParam = (index: number) => {
-    setQueryParams(prev => prev.filter((_, i) => i !== index));
+    setQueryParams((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const updateQueryParam = (index: number, field: string, value: string | boolean) => {
-    setQueryParams(prev => prev.map((param, i) =>
-      i === index ? { ...param, [field]: value } : param
-    ));
+  const updateQueryParam = (
+    index: number,
+    field: string,
+    value: string | boolean
+  ) => {
+    setQueryParams((prev) =>
+      prev.map((param, i) =>
+        i === index ? { ...param, [field]: value } : param
+      )
+    );
+  };
+
+  // Header functions
+  const addHeader = () => {
+    setHeaders((prev) => [
+      ...prev,
+      {
+        key: "",
+        value: "",
+        description: "",
+        enabled: true,
+      },
+    ]);
+  };
+
+  const removeHeader = (index: number) => {
+    setHeaders((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateHeader = (
+    index: number,
+    field: string,
+    value: string | boolean
+  ) => {
+    setHeaders((prev) =>
+      prev.map((header, i) =>
+        i === index ? { ...header, [field]: value } : header
+      )
+    );
   };
 
   // Save configuration to template
@@ -140,20 +200,28 @@ export function ConfigPanel({
     if (!selectedTemplate || !selectedNode) return;
 
     const configToSave: EndpointConfig = {
-      baseUrl: '',
-      pathVariables: pathParams.reduce((acc, param) => ({
-        ...acc,
-        [param.key]: param.value
-      }), {}),
-      queryParameters: queryParams.map(param => ({
+      baseUrl: "",
+      pathVariables: pathParams.reduce(
+        (acc, param) => ({
+          ...acc,
+          [param.key]: param.value,
+        }),
+        {}
+      ),
+      queryParameters: queryParams.map((param) => ({
         key: param.key,
         value: param.value,
         enabled: param.enabled,
-        description: param.description
+        description: param.description,
       })),
-      headers: [],
+      headers: headers.map((header) => ({
+        key: header.key,
+        value: header.value,
+        enabled: header.enabled,
+        description: header.description,
+      })),
       authorization: undefined,
-      body: { type: 'raw', content: '' }
+      body: { type: "raw", content: "" },
     };
 
     updateEndpointConfig(selectedTemplate.id, selectedNode, configToSave);
@@ -163,44 +231,61 @@ export function ConfigPanel({
   const handleReset = () => {
     if (!selectedTemplate || !selectedNode) return;
 
-    if (confirm('Are you sure you want to reset all configuration for this endpoint?')) {
+    if (
+      confirm(
+        "Are you sure you want to reset all configuration for this endpoint?"
+      )
+    ) {
       // Reset path parameters (keep keys, clear values)
-      setPathParams(prev => prev.map(param => ({
-        ...param,
-        value: '',
-        description: '',
-        enabled: true
-      })));
+      setPathParams((prev) =>
+        prev.map((param) => ({
+          ...param,
+          value: "",
+          description: "",
+          enabled: true,
+        }))
+      );
 
       // Clear query parameters
       setQueryParams([]);
 
+      // Clear headers
+      setHeaders([]);
+
       // Remove from template store
       updateEndpointConfig(selectedTemplate.id, selectedNode, {
-        baseUrl: '',
+        baseUrl: "",
         pathVariables: {},
         queryParameters: [],
         headers: [],
         authorization: undefined,
-        body: { type: 'raw', content: '' }
+        body: { type: "raw", content: "" },
       });
-
     }
   };
 
   if (!selectedNode) {
     return (
       <div className="h-full flex flex-col">
-        <ConfigHeader selectedNode={selectedNode} selectedNodeData={selectedNodeData} />
+        <ConfigHeader
+          selectedNode={selectedNode}
+          selectedNodeData={selectedNodeData}
+        />
       </div>
     );
   }
 
   return (
     <div className="h-full flex flex-col">
-      <ConfigHeader selectedNode={selectedNode} selectedNodeData={selectedNodeData} />
+      <ConfigHeader
+        selectedNode={selectedNode}
+        selectedNodeData={selectedNodeData}
+      />
 
-      <Tabs defaultValue="request" className="flex-1 flex flex-col overflow-hidden">
+      <Tabs
+        defaultValue="request"
+        className="flex-1 flex flex-col overflow-hidden"
+      >
         <div className="px-4 flex-shrink-0">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="request">Request</TabsTrigger>
@@ -220,7 +305,10 @@ export function ConfigPanel({
               </TabsList>
             </div>
 
-            <TabsContent value="parameters" className="flex-1 overflow-hidden mt-0">
+            <TabsContent
+              value="parameters"
+              className="flex-1 overflow-hidden mt-0"
+            >
               <ParametersTab
                 pathParams={pathParams}
                 queryParams={queryParams}
@@ -234,13 +322,23 @@ export function ConfigPanel({
               />
             </TabsContent>
 
-            <TabsContent value="headers" className="flex-1 overflow-hidden mt-0">
-              <div className="p-4 text-sm text-muted-foreground">
-                Headers configuration will be implemented here
-              </div>
+            <TabsContent
+              value="headers"
+              className="flex-1 overflow-hidden mt-0"
+            >
+              <HeadersTab
+                headers={headers}
+                variables={variables}
+                onAddHeader={addHeader}
+                onRemoveHeader={removeHeader}
+                onUpdateHeader={updateHeader}
+              />
             </TabsContent>
 
-            <TabsContent value="authorization" className="flex-1 overflow-hidden mt-0">
+            <TabsContent
+              value="authorization"
+              className="flex-1 overflow-hidden mt-0"
+            >
               <div className="p-4 text-sm text-muted-foreground">
                 Authorization configuration will be implemented here
               </div>

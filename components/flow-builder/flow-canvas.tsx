@@ -70,7 +70,25 @@ export function FlowCanvas({
 
   // Sync props to local state when template changes
   React.useEffect(() => {
-    setLocalNodes(nodes);
+    // Preserve execution status when syncing nodes
+    setLocalNodes((currentNodes) => {
+      return nodes.map((newNode) => {
+        const existingNode = currentNodes.find(n => n.id === newNode.id);
+        if (existingNode?.data?.executionStatus) {
+          // Preserve execution status and data
+          return {
+            ...newNode,
+            data: {
+              ...newNode.data,
+              executionStatus: existingNode.data.executionStatus,
+              requestData: existingNode.data.requestData,
+              responseData: existingNode.data.responseData,
+            }
+          };
+        }
+        return newNode;
+      });
+    });
     setLocalEdges(edges);
   }, [nodes, edges, setLocalNodes, setLocalEdges]);
 

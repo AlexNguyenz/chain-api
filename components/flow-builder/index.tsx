@@ -21,7 +21,6 @@ export function FlowBuilder() {
   const [editEndpoint, setEditEndpoint] = useState<Endpoint | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 
   const { selectedTemplate, updateTemplateFlow } = useTemplateStore();
 
@@ -35,7 +34,6 @@ export function FlowBuilder() {
 
   // Load template data when selected template ID changes
   useEffect(() => {
-
     // Only clear selected nodes when template ID actually changes
     setSelectedNode(null);
     setSelectedNodeData(null);
@@ -70,7 +68,6 @@ export function FlowBuilder() {
   useEffect(() => {
     // Skip if no template
     if (!selectedTemplate) return;
-
 
     const timeoutId = setTimeout(() => {
       updateTemplateFlow(selectedTemplate.id, nodes, edges);
@@ -127,7 +124,7 @@ export function FlowBuilder() {
             onNodeSelect={handleNodeSelect}
             onNodesChange={handleNodesChange}
             onEdgesChange={handleEdgesChange}
-            onReactFlowInit={setReactFlowInstance}
+            onReactFlowInit={() => {}}
             selectedTemplateId={selectedTemplate?.id}
           />
         </div>

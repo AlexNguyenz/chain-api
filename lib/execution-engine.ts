@@ -46,7 +46,9 @@ export class APIChainExecutor {
   private executorId: string;
 
   constructor(nodes: Node[], edges: Edge[], template?: Template) {
-    this.executorId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    this.executorId = `exec_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.nodes = nodes;
     this.edges = edges;
     this.template = template;
@@ -56,7 +58,6 @@ export class APIChainExecutor {
       currentData: null,
     };
     this.steps = [];
-
   }
 
   /**
@@ -242,7 +243,6 @@ export class APIChainExecutor {
     // Lấy endpoint config từ template
     const endpointConfig = this.template?.endpointConfigs?.[node.id];
 
-
     // Xử lý path variables để hiển thị đúng trong requestData
     const processedPath = this.processPathVariables(
       path as string,
@@ -252,22 +252,18 @@ export class APIChainExecutor {
     // Mỗi endpoint sử dụng dữ liệu riêng của node, không share context
     const nodeRequestBody = node.data.requestBody || null;
 
+    // Use prepareRequestConfig to get proper config with headers
+    const config = this.prepareRequestConfig(node);
+    config.data = nodeRequestBody; // Override with node-specific data
+
     const requestData = {
       method,
       path: processedPath, // Hiển thị path đã xử lý
       originalPath: path, // Giữ lại path gốc
-      headers: { "Content-Type": "application/json" },
+      headers: config.headers || { "Content-Type": "application/json" },
       body: nodeRequestBody,
       queryParameters: endpointConfig?.queryParameters || [],
       pathVariables: endpointConfig?.pathVariables || {},
-    };
-
-    // Tạo config với data riêng của node
-    const config = {
-      data: nodeRequestBody,
-      headers: { "Content-Type": "application/json" },
-      timeout: 30000,
-      endpointConfig,
     };
 
     // Thực hiện API call thật
@@ -299,7 +295,28 @@ export class APIChainExecutor {
       config.data = this.context.currentData;
     }
 
-    // Thêm headers tùy chỉnh nếu có
+    // Thêm endpoint config
+    const endpointConfig = this.template?.endpointConfigs?.[node.id];
+    if (endpointConfig) {
+      config.endpointConfig = endpointConfig;
+
+      // Process headers from endpoint config
+      if (endpointConfig.headers && endpointConfig.headers.length > 0) {
+        const processedHeaders: { [key: string]: string } = {};
+
+        endpointConfig.headers.forEach((header: any) => {
+          if (header.enabled && header.key && header.value) {
+            // Replace variables in header value
+            const processedValue = this.processVariables(header.value);
+            processedHeaders[header.key] = processedValue;
+          }
+        });
+
+        config.headers = { ...config.headers, ...processedHeaders };
+      }
+    }
+
+    // Thêm headers tùy chỉnh nếu có (deprecated, use endpointConfig instead)
     if (node.data.headers) {
       config.headers = { ...config.headers, ...node.data.headers };
     }
@@ -316,7 +333,6 @@ export class APIChainExecutor {
     config: any
   ): Promise<any> {
     const url = this.buildFullURL(path, config.endpointConfig);
-
 
     const fetchConfig: RequestInit = {
       method: method.toUpperCase(),
@@ -500,7 +516,7 @@ export class APIChainExecutor {
     // Kiểm tra trong context variables
     if (this.context.variables[varName] !== undefined) {
       return this.context.variables[varName];
-    } 
+    }
 
     // Kiểm tra trong step results
     const parts = varName.split(".");
