@@ -22,7 +22,7 @@ export const useEndpointStore = create<EndpointStore>((set) => ({
       id: "1",
       name: "Find pet by status",
       method: "GET",
-      path: "https://petstore.swagger.io/v2/pet/findByStatus?status=available",
+      path: "https://petstore.swagger.io/v2/pet/findByStatus",
       description: "Retrieve all users",
     },
     {

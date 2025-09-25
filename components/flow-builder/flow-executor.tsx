@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { useTemplateStore } from "@/store/templates";
 import {
   Play,
   Square,
@@ -48,6 +49,8 @@ export function FlowExecutor({ nodes, edges }: FlowExecutorProps) {
   const [initialData, setInitialData] = useState("{}");
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
 
+  const { selectedTemplate, templates } = useTemplateStore();
+
   const handleExecute = async () => {
     if (isExecuting) return;
 
@@ -65,8 +68,11 @@ export function FlowExecutor({ nodes, edges }: FlowExecutorProps) {
         }
       }
 
+      // Get fresh template from store to ensure latest variables
+      const freshTemplate = selectedTemplate ? templates.find(t => t.id === selectedTemplate.id) || selectedTemplate : undefined;
+
       // Tạo executor và chạy
-      const executor = new APIChainExecutor(nodes, edges);
+      const executor = new APIChainExecutor(nodes, edges, freshTemplate);
       const result = await executor.execute(parsedInitialData);
 
       setExecutionResult(result);

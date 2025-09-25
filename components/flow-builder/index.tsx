@@ -33,33 +33,36 @@ export function FlowBuilder() {
     setSelectedNodeData(nodeData || null);
   };
 
-  // Load template data when selected template changes
+  // Load template data when selected template ID changes
   useEffect(() => {
-    console.log('Loading template:', selectedTemplate?.name, 'ID:', selectedTemplate?.id);
 
-    // Clear selected nodes
+    // Only clear selected nodes when template ID actually changes
     setSelectedNode(null);
     setSelectedNodeData(null);
 
     if (selectedTemplate) {
-      console.log('Template nodes:', selectedTemplate.nodes.length, 'edges:', selectedTemplate.edges.length);
       // Load template data
       setNodes(selectedTemplate.nodes || []);
       setEdges(selectedTemplate.edges || []);
     } else {
-      console.log('No template selected, clearing nodes/edges');
       setNodes([]);
       setEdges([]);
     }
-  }, [selectedTemplate?.id]); // Only when template ID changes
+  }, [selectedTemplate?.id]); // Only when template ID changes, not updatedAt
+
+  // Separate effect to update nodes/edges when template content changes (but keep selection)
+  useEffect(() => {
+    if (selectedTemplate && nodes.length > 0) {
+      setNodes(selectedTemplate.nodes || []);
+      setEdges(selectedTemplate.edges || []);
+    }
+  }, [selectedTemplate?.updatedAt]); // When content changes, update but don't clear selection
 
   const handleNodesChange = (newNodes: Node[]) => {
-    console.log('Parent handleNodesChange:', newNodes.length, 'nodes');
     setNodes(newNodes);
   };
 
   const handleEdgesChange = (newEdges: Edge[]) => {
-    console.log('Parent handleEdgesChange:', newEdges.length, 'edges');
     setEdges(newEdges);
   };
 
@@ -68,10 +71,8 @@ export function FlowBuilder() {
     // Skip if no template
     if (!selectedTemplate) return;
 
-    console.log('Auto-save check - nodes:', nodes.length, 'edges:', edges.length);
 
     const timeoutId = setTimeout(() => {
-      console.log('Auto-saving template:', selectedTemplate.name);
       updateTemplateFlow(selectedTemplate.id, nodes, edges);
     }, 3000); // 3 seconds debounce
 
@@ -131,25 +132,12 @@ export function FlowBuilder() {
           />
         </div>
 
-        {/* Cột 3: Config & Execution Panel - 30% */}
+        {/* Cột 3: Config Panel - 30% */}
         <div className="w-[30%] bg-background border-l flex flex-col">
-          <Tabs defaultValue="config" className="h-full flex flex-col">
-            <div className="p-4 pb-0">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="config" className="text-xs">Config</TabsTrigger>
-                <TabsTrigger value="execute" className="text-xs">Execute</TabsTrigger>
-              </TabsList>
-            </div>
-            <TabsContent value="config" className="flex-1 mt-0 h-0">
-              <ConfigPanel
-                selectedNode={selectedNode}
-                selectedNodeData={selectedNodeData}
-              />
-            </TabsContent>
-            <TabsContent value="execute" className="flex-1 mt-0 h-0">
-              <FlowExecutor nodes={nodes} edges={edges} />
-            </TabsContent>
-          </Tabs>
+          <ConfigPanel
+            selectedNode={selectedNode}
+            selectedNodeData={selectedNodeData}
+          />
         </div>
       </div>
     </div>

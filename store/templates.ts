@@ -1,12 +1,37 @@
 import { create } from "zustand";
 import { Node, Edge } from "@xyflow/react";
 
+export interface Variable {
+  name: string;
+  value: string;
+  description?: string;
+  extractionPath?: string; // For $.data.message syntax
+}
+
+export interface EndpointConfig {
+  baseUrl?: string;
+  pathVariables?: Record<string, string>;
+  queryParameters?: Array<{ key: string; value: string; enabled: boolean; description?: string }>;
+  headers?: Array<{ key: string; value: string; enabled: boolean; description?: string }>;
+  authorization?: {
+    type: 'bearer';
+    token: string;
+  };
+  body?: {
+    type: 'form-data' | 'raw' | 'x-www-form-urlencoded' | 'binary';
+    content: string;
+    formData?: Array<{ key: string; value: string; type: 'text' | 'file'; enabled: boolean; description?: string }>;
+  };
+}
+
 export interface Template {
   id: string;
   name: string;
   description?: string;
   nodes: Node[];
   edges: Edge[];
+  variables: Variable[];
+  endpointConfigs: Record<string, EndpointConfig>; // nodeId -> config
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +44,10 @@ interface TemplateStore {
   deleteTemplate: (id: string) => void;
   selectTemplate: (template: Template | null) => void;
   updateTemplateFlow: (id: string, nodes: Node[], edges: Edge[]) => void;
+  addVariable: (templateId: string, variable: Variable) => void;
+  updateVariable: (templateId: string, oldName: string, variable: Variable) => void;
+  deleteVariable: (templateId: string, name: string) => void;
+  updateEndpointConfig: (templateId: string, nodeId: string, config: EndpointConfig) => void;
 }
 
 export const useTemplateStore = create<TemplateStore>((set) => ({
@@ -31,6 +60,8 @@ export const useTemplateStore = create<TemplateStore>((set) => ({
       const newTemplate: Template = {
         ...template,
         id: Date.now().toString(),
+        variables: template.variables || [],
+        endpointConfigs: template.endpointConfigs || {},
         createdAt: now,
         updatedAt: now,
       };
@@ -79,6 +110,82 @@ export const useTemplateStore = create<TemplateStore>((set) => ({
       selectedTemplate:
         state.selectedTemplate?.id === id
           ? { ...state.selectedTemplate, nodes, edges, updatedAt: new Date() }
+          : state.selectedTemplate,
+    })),
+
+  addVariable: (templateId, variable) =>
+    set((state) => ({
+      templates: state.templates.map((template) =>
+        template.id === templateId
+          ? { ...template, variables: [...template.variables, variable], updatedAt: new Date() }
+          : template
+      ),
+      selectedTemplate:
+        state.selectedTemplate?.id === templateId
+          ? { ...state.selectedTemplate, variables: [...state.selectedTemplate.variables, variable], updatedAt: new Date() }
+          : state.selectedTemplate,
+    })),
+
+  updateVariable: (templateId, oldName, variable) =>
+    set((state) => ({
+      templates: state.templates.map((template) =>
+        template.id === templateId
+          ? {
+              ...template,
+              variables: template.variables.map(v => v.name === oldName ? variable : v),
+              updatedAt: new Date()
+            }
+          : template
+      ),
+      selectedTemplate:
+        state.selectedTemplate?.id === templateId
+          ? {
+              ...state.selectedTemplate,
+              variables: state.selectedTemplate.variables.map(v => v.name === oldName ? variable : v),
+              updatedAt: new Date()
+            }
+          : state.selectedTemplate,
+    })),
+
+  deleteVariable: (templateId, name) =>
+    set((state) => ({
+      templates: state.templates.map((template) =>
+        template.id === templateId
+          ? {
+              ...template,
+              variables: template.variables.filter(v => v.name !== name),
+              updatedAt: new Date()
+            }
+          : template
+      ),
+      selectedTemplate:
+        state.selectedTemplate?.id === templateId
+          ? {
+              ...state.selectedTemplate,
+              variables: state.selectedTemplate.variables.filter(v => v.name !== name),
+              updatedAt: new Date()
+            }
+          : state.selectedTemplate,
+    })),
+
+  updateEndpointConfig: (templateId, nodeId, config) =>
+    set((state) => ({
+      templates: state.templates.map((template) =>
+        template.id === templateId
+          ? {
+              ...template,
+              endpointConfigs: { ...template.endpointConfigs, [nodeId]: config },
+              updatedAt: new Date()
+            }
+          : template
+      ),
+      selectedTemplate:
+        state.selectedTemplate?.id === templateId
+          ? {
+              ...state.selectedTemplate,
+              endpointConfigs: { ...state.selectedTemplate.endpointConfigs, [nodeId]: config },
+              updatedAt: new Date()
+            }
           : state.selectedTemplate,
     })),
 }));

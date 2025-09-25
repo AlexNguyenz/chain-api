@@ -1,161 +1,292 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { type Endpoint } from '@/store/endpoints'
+import React, { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { type Endpoint } from "@/store/endpoints";
+import {
+  useTemplateStore,
+  type Variable,
+  type EndpointConfig,
+} from "@/store/templates";
+import { ConfigHeader } from "./config/config-header";
+import { ParametersTab } from "./config/parameters-tab";
+import { VariablesTab } from "./config/variables-tab";
+import { ActionButtons } from "./config/action-buttons";
 
 interface ConfigPanelProps {
-  selectedNode: string | null
-  selectedNodeData?: Endpoint | null
+  selectedNode: string | null;
+  selectedNodeData?: Endpoint | null;
 }
 
-export function ConfigPanel({ selectedNode, selectedNodeData }: ConfigPanelProps) {
-  const [config, setConfig] = useState({
-    timeout: 30000,
-    retries: 3,
-    headers: {},
-    queryParams: {},
-    requestBody: '',
-    responseMapping: {}
-  })
+export function ConfigPanel({
+  selectedNode,
+  selectedNodeData,
+}: ConfigPanelProps) {
+  const {
+    selectedTemplate,
+    updateEndpointConfig,
+    addVariable,
+    updateVariable,
+    deleteVariable,
+  } = useTemplateStore();
+
+  const [config, setConfig] = useState<EndpointConfig>({
+    baseUrl: "",
+    pathVariables: {},
+    queryParameters: [],
+    headers: [],
+    authorization: undefined,
+    body: { type: "raw", content: "" },
+  });
+
+  const [newVariable, setNewVariable] = useState<Variable>({
+    name: "",
+    value: "",
+    description: "",
+  });
+
+  const [pathParams, setPathParams] = useState<Array<{
+    key: string;
+    value: string;
+    description?: string;
+    enabled: boolean;
+  }>>([]);
+
+  const [queryParams, setQueryParams] = useState<Array<{
+    key: string;
+    value: string;
+    description?: string;
+    enabled: boolean;
+  }>>([]);
+
+  const variables = selectedTemplate?.variables || [];
+  const currentConfig =
+    selectedTemplate?.endpointConfigs?.[selectedNode || ""] || config;
+
+  // Path parameter functions
+  const addPathParam = () => {
+    setPathParams(prev => [...prev, {
+      key: '',
+      value: '',
+      description: '',
+      enabled: true
+    }]);
+  };
+
+  const removePathParam = (index: number) => {
+    setPathParams(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updatePathParam = (index: number, field: string, value: string | boolean) => {
+    setPathParams(prev => prev.map((param, i) =>
+      i === index ? { ...param, [field]: value } : param
+    ));
+  };
+
+  // Load saved config when node changes
+  React.useEffect(() => {
+    if (selectedNode && selectedTemplate) {
+      // Get saved config from template
+      const savedConfig = selectedTemplate?.endpointConfigs?.[selectedNode];
+
+      // Load saved path parameters
+      if (savedConfig?.pathVariables) {
+        const pathParams = Object.entries(savedConfig.pathVariables).map(([key, value]) => ({
+          key,
+          value: value as string,
+          description: '',
+          enabled: true
+        }));
+        setPathParams(pathParams);
+      } else {
+        setPathParams([]);
+      }
+
+      // Load saved query parameters
+      if (savedConfig?.queryParameters) {
+        setQueryParams(savedConfig.queryParameters);
+      } else {
+        setQueryParams([]);
+      }
+    } else {
+      // Clear when no node selected
+      setPathParams([]);
+      setQueryParams([]);
+    }
+  }, [selectedNode, selectedTemplate]);
+
+  // Query parameter functions
+  const addQueryParam = () => {
+    setQueryParams(prev => [...prev, {
+      key: '',
+      value: '',
+      description: '',
+      enabled: true
+    }]);
+  };
+
+  const removeQueryParam = (index: number) => {
+    setQueryParams(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateQueryParam = (index: number, field: string, value: string | boolean) => {
+    setQueryParams(prev => prev.map((param, i) =>
+      i === index ? { ...param, [field]: value } : param
+    ));
+  };
+
+  // Save configuration to template
+  const handleSave = () => {
+    if (!selectedTemplate || !selectedNode) return;
+
+    const configToSave: EndpointConfig = {
+      baseUrl: '',
+      pathVariables: pathParams.reduce((acc, param) => ({
+        ...acc,
+        [param.key]: param.value
+      }), {}),
+      queryParameters: queryParams.map(param => ({
+        key: param.key,
+        value: param.value,
+        enabled: param.enabled,
+        description: param.description
+      })),
+      headers: [],
+      authorization: undefined,
+      body: { type: 'raw', content: '' }
+    };
+
+    updateEndpointConfig(selectedTemplate.id, selectedNode, configToSave);
+  };
+
+  // Reset configuration
+  const handleReset = () => {
+    if (!selectedTemplate || !selectedNode) return;
+
+    if (confirm('Are you sure you want to reset all configuration for this endpoint?')) {
+      // Reset path parameters (keep keys, clear values)
+      setPathParams(prev => prev.map(param => ({
+        ...param,
+        value: '',
+        description: '',
+        enabled: true
+      })));
+
+      // Clear query parameters
+      setQueryParams([]);
+
+      // Remove from template store
+      updateEndpointConfig(selectedTemplate.id, selectedNode, {
+        baseUrl: '',
+        pathVariables: {},
+        queryParameters: [],
+        headers: [],
+        authorization: undefined,
+        body: { type: 'raw', content: '' }
+      });
+
+    }
+  };
 
   if (!selectedNode) {
     return (
       <div className="h-full flex flex-col">
-        <div className="p-4">
-          <h2 className="text-lg font-semibold">Configuration</h2>
-          <Separator className="mt-3" />
-        </div>
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-          <div className="text-center space-y-2">
-            <div className="text-sm">Select an endpoint to configure</div>
-            <div className="text-xs">Drag an endpoint from the left panel to the canvas</div>
-          </div>
-        </div>
+        <ConfigHeader selectedNode={selectedNode} selectedNodeData={selectedNodeData} />
       </div>
-    )
+    );
   }
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-4">
-        <h2 className="text-lg font-semibold">Configuration</h2>
-        {selectedNodeData ? (
-          <div className="mt-2 space-y-1">
-            <div className="text-sm font-medium">{selectedNodeData.name}</div>
-            <div className="text-xs text-muted-foreground">
-              {selectedNodeData.method} {selectedNodeData.path}
-            </div>
-            <div className="text-xs text-muted-foreground">{selectedNodeData.description}</div>
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground mt-1">
-            Node: {selectedNode || 'None selected'}
-          </div>
-        )}
-        <Separator className="mt-3" />
-      </div>
+      <ConfigHeader selectedNode={selectedNode} selectedNodeData={selectedNodeData} />
 
-      <ScrollArea className="flex-1 h-0">
-        <div className="p-4 space-y-4">
-          {/* Request Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Request Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="timeout">Timeout (ms)</Label>
-                <Input
-                  id="timeout"
-                  type="number"
-                  value={config.timeout}
-                  onChange={(e) => setConfig(prev => ({ ...prev, timeout: parseInt(e.target.value) }))}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="retries">Retry Attempts</Label>
-                <Input
-                  id="retries"
-                  type="number"
-                  value={config.retries}
-                  onChange={(e) => setConfig(prev => ({ ...prev, retries: parseInt(e.target.value) }))}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Headers */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Headers</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full">
-                + Add Header
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Query Parameters */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Query Parameters</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full">
-                + Add Parameter
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Request Body */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Request Body</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Textarea
-                placeholder="Enter JSON request body..."
-                value={config.requestBody}
-                onChange={(e) => setConfig(prev => ({ ...prev, requestBody: e.target.value }))}
-                rows={6}
-                className="font-mono text-sm"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Response Mapping */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Response Mapping</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button variant="outline" className="w-full">
-                + Add Mapping
-              </Button>
-            </CardContent>
-          </Card>
+      <Tabs defaultValue="request" className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-4 flex-shrink-0">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="request">Request</TabsTrigger>
+            <TabsTrigger value="variables">Variables</TabsTrigger>
+          </TabsList>
         </div>
-      </ScrollArea>
 
-      {/* Action Buttons */}
-      <div className="p-4 space-y-2">
-        <Separator className="mb-4" />
-        <Button className="w-full">
-          Save Configuration
-        </Button>
-        <Button variant="outline" className="w-full">
-          Reset to Default
-        </Button>
+        {/* Request Tab */}
+        <TabsContent value="request" className="flex-1 overflow-hidden mt-0">
+          <Tabs defaultValue="parameters" className="h-full flex flex-col">
+            <div className="px-4 pt-4 flex-shrink-0">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="parameters">Parameters</TabsTrigger>
+                <TabsTrigger value="headers">Headers</TabsTrigger>
+                <TabsTrigger value="authorization">Authorization</TabsTrigger>
+                <TabsTrigger value="body">Body</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="parameters" className="flex-1 overflow-hidden mt-0">
+              <ParametersTab
+                pathParams={pathParams}
+                queryParams={queryParams}
+                variables={variables}
+                onAddPathParam={addPathParam}
+                onRemovePathParam={removePathParam}
+                onUpdatePathParam={updatePathParam}
+                onAddQueryParam={addQueryParam}
+                onRemoveQueryParam={removeQueryParam}
+                onUpdateQueryParam={updateQueryParam}
+              />
+            </TabsContent>
+
+            <TabsContent value="headers" className="flex-1 overflow-hidden mt-0">
+              <div className="p-4 text-sm text-muted-foreground">
+                Headers configuration will be implemented here
+              </div>
+            </TabsContent>
+
+            <TabsContent value="authorization" className="flex-1 overflow-hidden mt-0">
+              <div className="p-4 text-sm text-muted-foreground">
+                Authorization configuration will be implemented here
+              </div>
+            </TabsContent>
+
+            <TabsContent value="body" className="flex-1 overflow-hidden mt-0">
+              <div className="p-4 text-sm text-muted-foreground">
+                Body configuration will be implemented here
+              </div>
+            </TabsContent>
+          </Tabs>
+        </TabsContent>
+
+        {/* Variables Tab */}
+        <TabsContent value="variables" className="flex-1 overflow-hidden mt-0">
+          <VariablesTab
+            variables={variables}
+            newVariable={newVariable}
+            onNewVariableChange={setNewVariable}
+            onAddVariable={() => {
+              if (newVariable.name && newVariable.value && selectedTemplate) {
+                addVariable(selectedTemplate.id, newVariable);
+                setNewVariable({
+                  name: "",
+                  value: "",
+                  description: "",
+                });
+              }
+            }}
+            onDeleteVariable={(name) => {
+              if (selectedTemplate) {
+                deleteVariable(selectedTemplate.id, name);
+              }
+            }}
+          />
+        </TabsContent>
+      </Tabs>
+
+      {/* Fixed position action buttons */}
+      <div className="border-t bg-background">
+        <ActionButtons
+          onSave={handleSave}
+          onReset={handleReset}
+          disabled={!selectedTemplate || !selectedNode}
+        />
       </div>
     </div>
-  )
+  );
 }

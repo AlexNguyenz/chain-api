@@ -11,14 +11,6 @@ export function TemplatesTab() {
     useTemplateStore();
 
   const handleTemplateSelect = (template: any) => {
-    console.log(
-      "Selecting template:",
-      template.name,
-      "with nodes:",
-      template.nodes.length,
-      "edges:",
-      template.edges.length
-    );
     selectTemplate(template);
   };
 

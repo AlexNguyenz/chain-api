@@ -41,6 +41,8 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
         description: description.trim() || undefined,
         nodes: [],
         edges: [],
+        variables: [],
+        endpointConfigs: {},
       })
 
       setName('')

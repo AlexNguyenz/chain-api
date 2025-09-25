@@ -23,6 +23,7 @@ import { EndpointNode } from "./endpoint-node";
 import { FlowControlNode } from "./flow-control-node";
 import { RequestDetailsModal } from "./request-details-modal";
 import { type Endpoint, useEndpointStore } from "@/store/endpoints";
+import { useTemplateStore } from "@/store/templates";
 import { Button } from "@/components/ui/button";
 import { APIChainExecutor } from "@/lib/execution-engine";
 
@@ -63,12 +64,12 @@ export function FlowCanvas({
   // Debounce timer for position saves
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Subscribe to endpoint store
+  // Subscribe to stores
   const endpoints = useEndpointStore((state) => state.endpoints);
+  const { selectedTemplate, templates } = useTemplateStore();
 
   // Sync props to local state when template changes
   React.useEffect(() => {
-    console.log('Syncing props to local - nodes:', nodes.length, 'edges:', edges.length);
     setLocalNodes(nodes);
     setLocalEdges(edges);
   }, [nodes, edges, setLocalNodes, setLocalEdges]);
@@ -120,7 +121,6 @@ export function FlowCanvas({
     }
 
     debounceTimerRef.current = setTimeout(() => {
-      console.log('Debounced save - syncing to parent');
       onNodesChangeCallback?.(localNodes);
       onEdgesChangeCallback?.(localEdges);
     }, 1000); // 1 second after user stops interacting
@@ -132,7 +132,6 @@ export function FlowCanvas({
         const newEdges = addEdge(params, eds);
         // Trigger save after connect
         setTimeout(() => {
-          console.log('Connection made, saving:', newEdges.length, 'edges');
           onEdgesChangeCallback?.(newEdges);
         }, 200);
         return newEdges;
@@ -190,7 +189,6 @@ export function FlowCanvas({
             const newNodes = nds.concat(newNode);
             // Trigger save after adding node
             setTimeout(() => {
-              console.log('Endpoint node added, saving:', newNodes.length, 'nodes');
               onNodesChangeCallback?.(newNodes);
             }, 200);
             return newNodes;
@@ -213,7 +211,6 @@ export function FlowCanvas({
             const newNodes = nds.concat(newNode);
             // Trigger save after adding node
             setTimeout(() => {
-              console.log('Flow control node added, saving:', newNodes.length, 'nodes');
               onNodesChangeCallback?.(newNodes);
             }, 200);
             return newNodes;
@@ -223,7 +220,7 @@ export function FlowCanvas({
         console.error("Error parsing drop data:", error);
       }
     },
-    [reactFlowInstance, onNodeSelect, selectedTemplateId]
+    [reactFlowInstance, onNodeSelect, selectedTemplateId, onNodesChangeCallback]
   );
 
   const onNodeClick = useCallback(
@@ -248,7 +245,6 @@ export function FlowCanvas({
 
   const updateNodeStatus = useCallback(
     (nodeId: string, status: string) => {
-      console.log(`Updating node ${nodeId} to status: ${status}`);
       setLocalNodes((nds) =>
         nds.map((node) =>
           node.id === nodeId
@@ -276,12 +272,19 @@ export function FlowCanvas({
         }))
       );
 
-      const executor = new APIChainExecutor(localNodes, localEdges);
+      // Get fresh template from store to ensure latest variables
+      const freshTemplate = selectedTemplate ? templates.find(t => t.id === selectedTemplate.id) || selectedTemplate : undefined;
+
+
+      const executor = new APIChainExecutor(localNodes, localEdges, freshTemplate);
 
       // Execute with real-time status callbacks
       await executor.executeWithCallbacks({
         onNodeStart: (nodeId) => updateNodeStatus(nodeId, "loading"),
         onNodeComplete: (nodeId, requestData, responseData) => {
+          // Kiểm tra xem có error trong response không
+          const hasError = responseData?.error || responseData?.status >= 400;
+
           setLocalNodes((nds) =>
             nds.map((node) =>
               node.id === nodeId
@@ -289,7 +292,7 @@ export function FlowCanvas({
                     ...node,
                     data: {
                       ...node.data,
-                      executionStatus: "success",
+                      executionStatus: hasError ? "error" : "success",
                       requestData,
                       responseData,
                     },
@@ -313,33 +316,20 @@ export function FlowCanvas({
     } finally {
       setIsExecuting(false);
     }
-  }, [localNodes, localEdges, updateNodeStatus, isExecuting]);
+  }, [localNodes, localEdges, updateNodeStatus, isExecuting, selectedTemplate, templates, debouncedSave]);
 
   const handleClearFlow = useCallback(() => {
-    console.log(
-      "Clear clicked - Current nodes:",
-      nodes.length,
-      "edges:",
-      edges.length
-    );
-    console.log("Selected template:", selectedTemplateId);
-
     if (nodes.length === 0 && edges.length === 0) {
-      console.log("Already empty, returning");
       return;
     }
 
     if (confirm("Are you sure you want to clear all nodes?")) {
-      console.log("User confirmed clear");
-
       // Clear via callbacks
       onNodesChangeCallback?.([]);
       onEdgesChangeCallback?.([]);
 
       // Clear selection
       onNodeSelect(null, null);
-
-      // Already clearing above
     }
   }, [
     nodes.length,
@@ -347,7 +337,6 @@ export function FlowCanvas({
     onNodeSelect,
     onNodesChangeCallback,
     onEdgesChangeCallback,
-    selectedTemplateId,
   ]);
 
   return (
@@ -384,7 +373,6 @@ export function FlowCanvas({
           onNodesChange(changes);
           // Check if position change ended (drag finished)
           if (changes.some(change => change.type === 'position' && !change.dragging)) {
-            console.log('Position change ended - triggering debounced save');
             debouncedSave();
           }
         }}
@@ -396,7 +384,6 @@ export function FlowCanvas({
             setTimeout(() => {
               if (reactFlowInstance) {
                 const freshEdges = reactFlowInstance.getEdges();
-                console.log('Edge change detected, saving:', freshEdges.length, 'edges');
                 onEdgesChangeCallback?.(freshEdges);
               }
             }, 200);
