@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState, useRef } from 'react'
+import React, { useCallback, useState, useRef } from 'react'
 import {
   ReactFlow,
   Node,
@@ -19,24 +19,41 @@ import {
 import '@xyflow/react/dist/style.css'
 
 import { EndpointNode } from './endpoint-node'
+import { FlowControlNode } from './flow-control-node'
 import { type Endpoint } from '@/store/endpoints'
 
 const nodeTypes = {
   endpoint: EndpointNode,
+  flowControl: FlowControlNode,
 }
 
 interface FlowCanvasProps {
   onNodeSelect: (nodeId: string | null, nodeData?: Endpoint | null) => void
+  onNodesChange?: (nodes: Node[]) => void
+  onEdgesChange?: (edges: Edge[]) => void
 }
 
 const initialNodes: Node[] = []
 const initialEdges: Edge[] = []
 
-export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
+export function FlowCanvas({ onNodeSelect, onNodesChange: onNodesChangeCallback, onEdgesChange: onEdgesChangeCallback }: FlowCanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null)
+
+  // Sync nodes and edges with parent component
+  React.useEffect(() => {
+    if (onNodesChangeCallback) {
+      onNodesChangeCallback(nodes);
+    }
+  }, [nodes, onNodesChangeCallback]);
+
+  React.useEffect(() => {
+    if (onEdgesChangeCallback) {
+      onEdgesChangeCallback(edges);
+    }
+  }, [edges, onEdgesChangeCallback]);
 
   const onConnect: OnConnect = useCallback(
     (params) => setEdges((eds) => addEdge(params, eds)),
@@ -60,16 +77,29 @@ export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
 
       try {
         const dropData = JSON.parse(type)
-        if (dropData.type === 'endpoint') {
-          const position = reactFlowInstance.screenToFlowPosition({
-            x: event.clientX,
-            y: event.clientY,
-          })
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        })
 
+        if (dropData.type === 'endpoint') {
           const nodeId = `endpoint-${dropData.data.id}-${Date.now()}`
           const newNode: Node = {
             id: nodeId,
             type: 'endpoint',
+            position,
+            data: {
+              ...dropData.data,
+              onSelect: () => onNodeSelect(nodeId)
+            },
+          }
+
+          setNodes((nds) => nds.concat(newNode))
+        } else if (dropData.type === 'flowControl') {
+          const nodeId = `flowControl-${dropData.data.id}-${Date.now()}`
+          const newNode: Node = {
+            id: nodeId,
+            type: 'flowControl',
             position,
             data: {
               ...dropData.data,
@@ -87,7 +117,7 @@ export function FlowCanvas({ onNodeSelect }: FlowCanvasProps) {
   )
 
   const onNodeClick = useCallback(
-    (event: React.MouseEvent, node: Node) => {
+    (_event: React.MouseEvent, node: Node) => {
       onNodeSelect(node.id, node.data as unknown as Endpoint)
     },
     [onNodeSelect]

@@ -48,7 +48,7 @@ export function EndpointList({ onEditEndpoint }: EndpointListProps) {
       </div>
 
       <ScrollArea className="flex-1 h-0">
-        <div className="p-4 space-y-3">
+        <div className="p-4 space-y-3 w-full">
           {filteredEndpoints.map((endpoint) => (
             <EndpointItem
               key={endpoint.id}

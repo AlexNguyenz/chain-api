@@ -1,9 +1,10 @@
+import { HTTPMethod } from "@/constants/http-methods";
 import { create } from "zustand";
 
 export interface Endpoint {
   id: string;
   name: string;
-  method: "GET" | "POST" | "PUT" | "DELETE";
+  method: HTTPMethod;
   path: string;
   description: string;
 }
@@ -19,16 +20,16 @@ export const useEndpointStore = create<EndpointStore>((set) => ({
   endpoints: [
     {
       id: "1",
-      name: "Get Users",
+      name: "Find pet by status",
       method: "GET",
-      path: "/api/users",
+      path: "https://petstore.swagger.io/v2/pet/findByStatus?status=available",
       description: "Retrieve all users",
     },
     {
       id: "2",
-      name: "Create User",
-      method: "POST",
-      path: "/api/users",
+      name: "Get store inventory",
+      method: "GET",
+      path: "https://petstore.swagger.io/v2/store/inventory",
       description: "Create a new user",
     },
     {

@@ -49,10 +49,12 @@ export function EndpointItem({
       onDragStart={handleDragStart}
     >
       <CardContent className="p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="font-medium truncate line-clamp-1">{endpoint.path}</p>
-            <p className="text-sm text-muted-foreground font-medium truncate line-clamp-1">
+        <div className="flex items-center justify-between gap-2 overflow-hidden">
+          <div className="flex-1 min-w-0">
+            <p className="font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
+              {endpoint.path}
+            </p>
+            <p className="text-sm text-muted-foreground font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
               {endpoint.name}
             </p>
           </div>

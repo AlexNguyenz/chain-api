@@ -4,78 +4,65 @@ import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
+  Play,
+  Square,
+  Clock,
   GitBranch,
-  Repeat,
-  Filter,
-  Shuffle,
-  GitMerge,
-  Zap
+  Repeat
 } from "lucide-react";
 
 interface FlowControl {
   id: string;
   name: string;
-  type: "conditional" | "loop" | "filter" | "transform" | "merge" | "trigger";
+  type: "start" | "end" | "delay" | "condition" | "loop";
   description: string;
   icon: React.ComponentType<{ className?: string }>;
+  iconColor: string;
 }
 
 const flowControls: FlowControl[] = [
   {
-    id: "conditional-1",
-    name: "If/Else",
-    type: "conditional",
-    description: "Branch flow based on conditions",
+    id: "start-1",
+    name: "Start",
+    type: "start",
+    description: "Begin the flow execution",
+    icon: Play,
+    iconColor: "text-green-600",
+  },
+  {
+    id: "end-1",
+    name: "End",
+    type: "end",
+    description: "Terminate the flow",
+    icon: Square,
+    iconColor: "text-red-600",
+  },
+  {
+    id: "delay-1",
+    name: "Delay",
+    type: "delay",
+    description: "Wait for specified time",
+    icon: Clock,
+    iconColor: "text-purple-600",
+  },
+  {
+    id: "condition-1",
+    name: "Condition",
+    type: "condition",
+    description: "Branch based on conditions",
     icon: GitBranch,
+    iconColor: "text-yellow-600",
   },
   {
     id: "loop-1",
-    name: "For Each",
+    name: "Loop",
     type: "loop",
-    description: "Iterate over array elements",
+    description: "Iterate over items",
     icon: Repeat,
-  },
-  {
-    id: "filter-1",
-    name: "Filter",
-    type: "filter",
-    description: "Filter data based on criteria",
-    icon: Filter,
-  },
-  {
-    id: "transform-1",
-    name: "Transform",
-    type: "transform",
-    description: "Transform data structure",
-    icon: Shuffle,
-  },
-  {
-    id: "merge-1",
-    name: "Merge",
-    type: "merge",
-    description: "Merge multiple data sources",
-    icon: GitMerge,
-  },
-  {
-    id: "trigger-1",
-    name: "Trigger",
-    type: "trigger",
-    description: "Start flow on event",
-    icon: Zap,
+    iconColor: "text-orange-600",
   },
 ];
-
-const typeColors = {
-  conditional: "bg-blue-500",
-  loop: "bg-purple-500",
-  filter: "bg-orange-500",
-  transform: "bg-green-500",
-  merge: "bg-pink-500",
-  trigger: "bg-yellow-500",
-};
 
 export function FlowControlList() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -103,9 +90,9 @@ export function FlowControlList() {
   return (
     <div className="h-full flex flex-col">
       <div className="p-4 space-y-3">
-        <h2 className="text-lg font-semibold">Flow Controls</h2>
+        <h2 className="text-lg font-semibold">Utilities</h2>
         <Input
-          placeholder="Search controls..."
+          placeholder="Search utilities..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -113,33 +100,19 @@ export function FlowControlList() {
       </div>
 
       <ScrollArea className="flex-1 h-0">
-        <div className="p-4 space-y-3">
+        <div className="p-4 space-y-2">
           {filteredControls.map((control) => {
             const Icon = control.icon;
             return (
-              <Card
+              <div
                 key={control.id}
-                className="group cursor-move hover:shadow-md transition-shadow"
+                className="group cursor-move hover:bg-muted/50 transition-colors p-2 rounded-lg flex items-center gap-3"
                 draggable
                 onDragStart={(e) => onDragStart(e, control)}
               >
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`p-2 rounded-lg ${typeColors[control.type]} text-white`}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{control.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {control.description}
-                      </div>
-                    </div>
-                    <Badge variant="secondary">{control.type}</Badge>
-                  </div>
-                </CardContent>
-              </Card>
+                <Icon className={`h-5 w-5 ${control.iconColor}`} />
+                <span className="text-sm font-medium">{control.name}</span>
+              </div>
             );
           })}
         </div>

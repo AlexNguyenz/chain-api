@@ -19,7 +19,7 @@ export const EndpointNode = memo(({ data, selected }: NodeProps) => {
   const endpointData = data as unknown as EndpointData;
   return (
     <div
-      className={`p-3 shadow-md rounded-lg border-1 w-[250px] ${getMethodCardColor(
+      className={`p-3 shadow-md rounded-lg border-1 w-[250px] overflow-hidden ${getMethodCardColor(
         endpointData.method
       )} ${selected ? "border-2 bg-background" : ""}`}
     >
@@ -29,12 +29,12 @@ export const EndpointNode = memo(({ data, selected }: NodeProps) => {
         className="w-16 !bg-gray-400"
       />
 
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-1">
-          <p className="font-medium truncate line-clamp-1">
+      <div className="flex items-center justify-between w-full">
+        <div className="flex-1 flex-col gap-1 overflow-hidden">
+          <p className="font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
             {endpointData.path}
           </p>
-          <p className="text-sm text-muted-foreground font-medium truncate line-clamp-1">
+          <p className="text-sm text-muted-foreground font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
             {endpointData.name}
           </p>
         </div>
