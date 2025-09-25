@@ -25,11 +25,18 @@ export interface ExecutionResult {
   executionTime: number;
 }
 
+export interface ExecutionCallbacks {
+  onNodeStart?: (nodeId: string) => void;
+  onNodeComplete?: (nodeId: string) => void;
+  onNodeError?: (nodeId: string, error: string) => void;
+}
+
 export class APIChainExecutor {
   private nodes: Node[];
   private edges: Edge[];
   private context: ExecutionContext;
   private steps: ExecutionStep[];
+  private callbacks?: ExecutionCallbacks;
 
   constructor(nodes: Node[], edges: Edge[]) {
     this.nodes = nodes;
@@ -40,6 +47,14 @@ export class APIChainExecutor {
       currentData: null
     };
     this.steps = [];
+  }
+
+  /**
+   * Thực thi với callbacks để update UI
+   */
+  async executeWithCallbacks(callbacks: ExecutionCallbacks, initialData?: any): Promise<ExecutionResult> {
+    this.callbacks = callbacks;
+    return this.execute(initialData);
   }
 
   /**
@@ -94,44 +109,49 @@ export class APIChainExecutor {
     const node = this.nodes.find(n => n.id === nodeId);
     if (!node) return;
 
-    // Tạo execution step
-    const step: ExecutionStep = {
-      nodeId,
-      nodeType: node.type || 'unknown',
-      data: node.data,
-      status: 'running',
-      startTime: Date.now()
-    };
-    this.steps.push(step);
-
     try {
-      // Thực thi node dựa trên type
-      switch (node.type) {
-        case 'flowControl':
-          await this.executeFlowControl(node, step);
-          break;
-        case 'endpoint':
-          await this.executeEndpoint(node, step);
-          break;
-        default:
-          throw new Error(`Unknown node type: ${node.type}`);
+      // Bắt đầu node
+      this.callbacks?.onNodeStart?.(nodeId);
+
+      // Thực thi node
+      if (node.type === 'endpoint') {
+        await this.executeEndpoint(node);
+      } else if (node.type === 'flowControl') {
+        await this.executeFlowControl(node);
       }
 
-      step.status = 'completed';
-      step.endTime = Date.now();
+      // Chỉ gọi complete khi không có lỗi
+      this.callbacks?.onNodeComplete?.(nodeId);
 
     } catch (error) {
-      step.status = 'failed';
-      step.error = error instanceof Error ? error.message : 'Unknown error';
-      step.endTime = Date.now();
-      throw error;
+      this.callbacks?.onNodeError?.(nodeId, error instanceof Error ? error.message : 'Unknown error');
     }
+
+    // Luôn tiếp tục với node tiếp theo (dù success hay error)
+    const nextEdge = this.edges.find(edge => edge.source === nodeId);
+    if (nextEdge) {
+      await this.executeFromNode(nextEdge.target);
+    }
+  }
+
+  /**
+   * Tiếp tục đến node tiếp theo trong chain
+   */
+  private async continueToNextNode(node: Node): Promise<void> {
+    if (node.type === 'endpoint') {
+      // Với endpoint, chỉ tiếp tục với node tiếp theo
+      const nextEdge = this.edges.find(edge => edge.source === node.id);
+      if (nextEdge) {
+        await this.executeFromNode(nextEdge.target);
+      }
+    }
+    // Flow control nodes sẽ tự xử lý logic tiếp theo
   }
 
   /**
    * Thực thi Flow Control node
    */
-  private async executeFlowControl(node: Node, step: ExecutionStep): Promise<void> {
+  private async executeFlowControl(node: Node): Promise<void> {
     const { type } = node.data;
 
     switch (type) {
@@ -147,78 +167,27 @@ export class APIChainExecutor {
         // Delay node tạm dừng execution
         const delayMs = (node.data.delayMs as number) || 1000;
         await new Promise(resolve => setTimeout(resolve, delayMs));
-        step.result = { delayed: delayMs };
         break;
 
       case 'condition':
-        // Condition node kiểm tra điều kiện
-        const condition = this.evaluateCondition((node.data.condition as string) || 'true');
-        step.result = { condition, passed: condition };
-
-        // Chuyển đến branch phù hợp
-        const nextEdge = this.edges.find(edge =>
-          edge.source === node.id &&
-          edge.sourceHandle === (condition ? 'true' : 'false')
-        );
-
-        if (nextEdge) {
-          await this.executeFromNode(nextEdge.target);
-        }
-        return; // Không tiếp tục với luồng chính
+        // Chỉ là placeholder
+        break;
 
       case 'loop':
-        // Loop node lặp lại
-        const loopCount = (node.data.loopCount as number) || 1;
-        const loopResults = [];
-
-        for (let i = 0; i < loopCount; i++) {
-          // Thực thi các node con trong loop
-          const loopEdges = this.edges.filter(edge => edge.source === node.id);
-          for (const edge of loopEdges) {
-            await this.executeFromNode(edge.target);
-          }
-          loopResults.push(this.context.currentData);
-        }
-
-        step.result = { loopCount, results: loopResults };
-        return; // Không tiếp tục với luồng chính
-    }
-
-    // Tiếp tục với node tiếp theo (cho start, delay)
-    const nextEdge = this.edges.find(edge => edge.source === node.id);
-    if (nextEdge) {
-      await this.executeFromNode(nextEdge.target);
+        // Chỉ là placeholder
+        break;
     }
   }
 
   /**
    * Thực thi API Endpoint node
    */
-  private async executeEndpoint(node: Node, step: ExecutionStep): Promise<void> {
+  private async executeEndpoint(node: Node): Promise<void> {
     const { method, path } = node.data;
 
-    // Chuẩn bị request configuration
-    const config = this.prepareRequestConfig(node);
-
-    try {
-      // Thực hiện API call
-      const response = await this.makeAPICall(method as string, path as string, config);
-
-      // Lưu kết quả
-      step.result = response;
-      this.context.stepResults[node.id] = response;
-      this.context.currentData = response.data;
-
-      // Tiếp tục với node tiếp theo
-      const nextEdge = this.edges.find(edge => edge.source === node.id);
-      if (nextEdge) {
-        await this.executeFromNode(nextEdge.target);
-      }
-
-    } catch (error) {
-      step.error = error instanceof Error ? error.message : 'API call failed';
-      throw error;
-    }
+    // Thực hiện API call thật
+    const response = await this.makeAPICall(method as string, path as string, {});
+    this.context.currentData = response.data;
   }
 
   /**
