@@ -220,7 +220,6 @@ export function ConfigPanel({
         enabled: header.enabled,
         description: header.description,
       })),
-      authorization: undefined,
       body: { type: "raw", content: "" },
     };
 
@@ -258,7 +257,6 @@ export function ConfigPanel({
         pathVariables: {},
         queryParameters: [],
         headers: [],
-        authorization: undefined,
         body: { type: "raw", content: "" },
       });
     }
@@ -297,10 +295,9 @@ export function ConfigPanel({
         <TabsContent value="request" className="flex-1 overflow-hidden mt-0">
           <Tabs defaultValue="parameters" className="h-full flex flex-col">
             <div className="px-4 pt-4 flex-shrink-0">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="parameters">Parameters</TabsTrigger>
                 <TabsTrigger value="headers">Headers</TabsTrigger>
-                <TabsTrigger value="authorization">Authorization</TabsTrigger>
                 <TabsTrigger value="body">Body</TabsTrigger>
               </TabsList>
             </div>
@@ -335,14 +332,6 @@ export function ConfigPanel({
               />
             </TabsContent>
 
-            <TabsContent
-              value="authorization"
-              className="flex-1 overflow-hidden mt-0"
-            >
-              <div className="p-4 text-sm text-muted-foreground">
-                Authorization configuration will be implemented here
-              </div>
-            </TabsContent>
 
             <TabsContent value="body" className="flex-1 overflow-hidden mt-0">
               <div className="p-4 text-sm text-muted-foreground">

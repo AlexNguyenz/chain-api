@@ -283,18 +283,17 @@ export function FlowCanvas({
       setIsExecuting(true);
 
       // Reset all nodes to idle state
-      setLocalNodes((nds) =>
-        nds.map((node) => ({
-          ...node,
-          data: { ...node.data, executionStatus: "idle" },
-        }))
-      );
+      const cleanNodes = localNodes.map((node) => ({
+        ...node,
+        data: { ...node.data, executionStatus: "idle" },
+      }));
+
+      setLocalNodes(cleanNodes);
 
       // Get fresh template from store to ensure latest variables
       const freshTemplate = selectedTemplate ? templates.find(t => t.id === selectedTemplate.id) || selectedTemplate : undefined;
 
-
-      const executor = new APIChainExecutor(localNodes, localEdges, freshTemplate);
+      const executor = new APIChainExecutor(cleanNodes, localEdges, freshTemplate);
 
       // Execute with real-time status callbacks
       await executor.executeWithCallbacks({

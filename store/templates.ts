@@ -13,10 +13,6 @@ export interface EndpointConfig {
   pathVariables?: Record<string, string>;
   queryParameters?: Array<{ key: string; value: string; enabled: boolean; description?: string }>;
   headers?: Array<{ key: string; value: string; enabled: boolean; description?: string }>;
-  authorization?: {
-    type: 'bearer';
-    token: string;
-  };
   body?: {
     type: 'form-data' | 'raw' | 'x-www-form-urlencoded' | 'binary';
     content: string;
