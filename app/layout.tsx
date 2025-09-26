@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import "./globals.css";
 import { QueryProvider } from "@/providers/query-provider";
+import { GoogleAnalytics } from "@next/third-parties/google";
+
+import "./globals.css";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -19,7 +21,8 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Chain API - Visual API Flow Testing",
-  description: "Transform your API testing with Chain API's visual workflow builder. Test complex API flows with intelligent dependency mapping and real-time monitoring.",
+  description:
+    "Transform your API testing with Chain API's visual workflow builder. Test complex API flows with intelligent dependency mapping and real-time monitoring.",
 };
 
 export default function RootLayout({
@@ -32,9 +35,8 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
-        <QueryProvider>
-          {children}
-        </QueryProvider>
+        <QueryProvider>{children}</QueryProvider>
+        <GoogleAnalytics gaId="G-HN3CELYPJ3" />
       </body>
     </html>
   );
