@@ -46,18 +46,63 @@ export function VariablesTab({
               />
             </div>
             <div className="space-y-2">
-              <Label>Value</Label>
-              <Input
-                value={newVariable.value}
-                onChange={(e) =>
-                  onNewVariableChange({
-                    ...newVariable,
-                    value: e.target.value,
-                  })
-                }
-                placeholder="Fixed value or $.data.message"
-              />
+              <Label>Type</Label>
+              <select
+                className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                value={newVariable.extractionPath ? "extraction" : "fixed"}
+                onChange={(e) => {
+                  if (e.target.value === "fixed") {
+                    onNewVariableChange({
+                      ...newVariable,
+                      extractionPath: undefined,
+                      value: newVariable.value || "",
+                    });
+                  } else {
+                    onNewVariableChange({
+                      ...newVariable,
+                      value: "",
+                      extractionPath: "$.data.",
+                    });
+                  }
+                }}
+              >
+                <option value="fixed">Fixed Value</option>
+                <option value="extraction">Extract from Response</option>
+              </select>
             </div>
+
+            {newVariable.extractionPath ? (
+              <div className="space-y-2">
+                <Label>Extraction Path</Label>
+                <Input
+                  value={newVariable.extractionPath}
+                  onChange={(e) =>
+                    onNewVariableChange({
+                      ...newVariable,
+                      extractionPath: e.target.value,
+                    })
+                  }
+                  placeholder="$.data.message"
+                />
+                <div className="text-xs text-muted-foreground">
+                  Use JSONPath syntax: $.data.token, $.response.user.id
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>Value</Label>
+                <Input
+                  value={newVariable.value}
+                  onChange={(e) =>
+                    onNewVariableChange({
+                      ...newVariable,
+                      value: e.target.value,
+                    })
+                  }
+                  placeholder="Enter fixed value"
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Description (optional)</Label>
               <Input
@@ -73,7 +118,7 @@ export function VariablesTab({
             </div>
             <Button
               onClick={onAddVariable}
-              disabled={!newVariable.name || !newVariable.value}
+              disabled={!newVariable.name}
               className="w-full"
             >
               Add Variable
@@ -110,7 +155,11 @@ export function VariablesTab({
                       </Button>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {variable.value}
+                      {variable.extractionPath ? (
+                        <span className="text-blue-600">Extract: {variable.extractionPath}</span>
+                      ) : (
+                        <span>Value: {variable.value}</span>
+                      )}
                     </div>
                     {variable.description && (
                       <div className="text-xs text-muted-foreground">

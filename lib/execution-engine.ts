@@ -34,6 +34,7 @@ export interface ExecutionCallbacks {
     responseData?: any
   ) => void;
   onNodeError?: (nodeId: string, error: string) => void;
+  onVariableUpdate?: (variableName: string, newValue: string) => void;
 }
 
 export class APIChainExecutor {
@@ -136,6 +137,11 @@ export class APIChainExecutor {
         responseData = result.responseData;
       } else if (node.type === "flowControl") {
         await this.executeFlowControl(node);
+      }
+
+      // Extract variables from response if configured
+      if (node.type === "endpoint" && responseData && this.template) {
+        this.extractVariablesFromResponse(responseData);
       }
 
       // Chỉ gọi complete khi không có lỗi
@@ -323,7 +329,7 @@ export class APIChainExecutor {
       if (endpointConfig.body) {
         const bodyConfig = endpointConfig.body;
 
-        if (bodyConfig.type === 'raw' && bodyConfig.content) {
+        if (bodyConfig.type === "raw" && bodyConfig.content) {
           // Raw JSON body - no variable processing, use as-is
           try {
             config.data = JSON.parse(bodyConfig.content);
@@ -331,21 +337,23 @@ export class APIChainExecutor {
             // If not valid JSON, send as string
             config.data = bodyConfig.content;
           }
-        } else if (bodyConfig.type === 'form-data' && bodyConfig.formData) {
+        } else if (bodyConfig.type === "form-data" && bodyConfig.formData) {
           // Form data body
           const formData = new FormData();
           const formDataDisplay: Record<string, string> = {};
 
           bodyConfig.formData.forEach((field: any) => {
             if (field.enabled && field.key) {
-              if (field.type === 'text') {
+              if (field.type === "text") {
                 const processedValue = this.processVariables(field.value);
                 formData.append(field.key, processedValue);
                 formDataDisplay[field.key] = processedValue;
-              } else if (field.type === 'file' && field.file) {
+              } else if (field.type === "file" && field.file) {
                 // Use actual File object for real file upload
                 formData.append(field.key, field.file, field.file.name);
-                formDataDisplay[field.key] = `[FILE: ${field.file.name}] (${(field.file.size / 1024).toFixed(1)} KB)`;
+                formDataDisplay[field.key] = `[FILE: ${field.file.name}] (${(
+                  field.file.size / 1024
+                ).toFixed(1)} KB)`;
               }
             }
           });
@@ -398,7 +406,7 @@ export class APIChainExecutor {
       if (config.data instanceof FormData) {
         // FormData doesn't need JSON.stringify
         fetchConfig.body = config.data;
-      } else if (typeof config.data === 'object') {
+      } else if (typeof config.data === "object") {
         // JSON data
         fetchConfig.body = JSON.stringify(config.data);
       } else {
@@ -588,5 +596,148 @@ export class APIChainExecutor {
     }
 
     return undefined;
+  }
+
+  /**
+   * Extract variables from API response using JSONPath
+   */
+  private extractVariablesFromResponse(responseData: any): void {
+    if (!this.template || !this.template.variables) return;
+
+    this.template.variables.forEach((variable) => {
+      if (variable.extractionPath) {
+        try {
+          const extractedValue = this.extractValueFromPath(
+            responseData,
+            variable.extractionPath
+          );
+
+          const pathExists = this.pathExists(
+            responseData,
+            variable.extractionPath
+          );
+          if (pathExists) {
+            // Update variable value in template
+            variable.value = String(extractedValue);
+
+            // Also store in context variables for immediate use
+            this.context.variables[variable.name] = extractedValue;
+
+            // Notify callback to update template store
+            this.callbacks?.onVariableUpdate?.(
+              variable.name,
+              String(extractedValue)
+            );
+
+            console.log(
+              `✅ Variable extracted: ${variable.name} = ${String(
+                extractedValue
+              )}`
+            );
+          }
+        } catch (error) {
+          console.error(
+            `❌ Failed to extract variable ${variable.name}:`,
+            error
+          );
+        }
+      }
+    });
+  }
+
+  /**
+   * Extract value from response data using JSONPath syntax
+   */
+  private extractValueFromPath(data: any, path: string): any {
+    // Simple JSONPath implementation for $.data.message syntax
+    if (!path.startsWith("$.")) {
+      return undefined;
+    }
+
+    // Remove $. prefix and split by dots
+    const pathParts = path.substring(2).split(".");
+
+    let current = data;
+    for (let i = 0; i < pathParts.length; i++) {
+      const part = pathParts[i];
+
+      if (current === null || current === undefined) {
+        return undefined;
+      }
+
+      // Handle array indices like users[0]
+      if (part.includes("[") && part.includes("]")) {
+        const arrayName = part.substring(0, part.indexOf("["));
+        const indexStr = part.substring(
+          part.indexOf("[") + 1,
+          part.indexOf("]")
+        );
+        const index = parseInt(indexStr, 10);
+
+        if (
+          current[arrayName] &&
+          Array.isArray(current[arrayName]) &&
+          !isNaN(index)
+        ) {
+          current = current[arrayName][index];
+        } else {
+          return undefined;
+        }
+      } else {
+        current = current[part];
+      }
+    }
+
+    return current;
+  }
+
+  /**
+   * Check if a JSONPath exists in the data (regardless of value)
+   */
+  private pathExists(data: any, path: string): boolean {
+    if (!path.startsWith("$.")) {
+      return false;
+    }
+
+    const pathParts = path.substring(2).split(".");
+
+    let current = data;
+    for (let i = 0; i < pathParts.length; i++) {
+      const part = pathParts[i];
+
+      if (current === null || current === undefined) {
+        return false;
+      }
+
+      // Handle array indices like users[0]
+      if (part.includes("[") && part.includes("]")) {
+        const arrayName = part.substring(0, part.indexOf("["));
+        const indexStr = part.substring(
+          part.indexOf("[") + 1,
+          part.indexOf("]")
+        );
+        const index = parseInt(indexStr, 10);
+
+        // Check if property exists and is array
+        if (!(arrayName in current) || !Array.isArray(current[arrayName])) {
+          return false;
+        }
+
+        // Check if index is valid
+        if (isNaN(index) || index < 0 || index >= current[arrayName].length) {
+          return false;
+        }
+
+        current = current[arrayName][index];
+      } else {
+        // Check if property exists
+        if (!(part in current)) {
+          return false;
+        }
+        current = current[part];
+      }
+    }
+
+    return true;
   }
 }

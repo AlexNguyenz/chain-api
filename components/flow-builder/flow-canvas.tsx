@@ -319,6 +319,19 @@ export function FlowCanvas({
           );
         },
         onNodeError: (nodeId) => updateNodeStatus(nodeId, "error"),
+        onVariableUpdate: (variableName, newValue) => {
+          // Update variable in template store
+          if (freshTemplate) {
+            const existingVariable = freshTemplate.variables.find(v => v.name === variableName);
+            if (existingVariable) {
+              // Update existing variable
+              useTemplateStore.getState().updateVariable(freshTemplate.id, variableName, {
+                ...existingVariable,
+                value: newValue
+              });
+            }
+          }
+        },
       });
 
       // Save execution results to template

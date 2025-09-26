@@ -391,12 +391,19 @@ export function ConfigPanel({
             newVariable={newVariable}
             onNewVariableChange={setNewVariable}
             onAddVariable={() => {
-              if (newVariable.name && newVariable.value && selectedTemplate) {
-                addVariable(selectedTemplate.id, newVariable);
+              if (newVariable.name && selectedTemplate) {
+                // For extraction variables, value can be empty
+                const variableToAdd = {
+                  ...newVariable,
+                  value: newVariable.extractionPath ? "" : newVariable.value
+                };
+
+                addVariable(selectedTemplate.id, variableToAdd);
                 setNewVariable({
                   name: "",
                   value: "",
                   description: "",
+                  extractionPath: undefined,
                 });
               }
             }}
