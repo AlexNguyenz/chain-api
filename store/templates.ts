@@ -16,7 +16,14 @@ export interface EndpointConfig {
   body?: {
     type: 'form-data' | 'raw' | 'x-www-form-urlencoded' | 'binary';
     content: string;
-    formData?: Array<{ key: string; value: string; type: 'text' | 'file'; enabled: boolean; description?: string }>;
+    formData?: Array<{
+      key: string;
+      value: string;
+      type: 'text' | 'file';
+      enabled: boolean;
+      description?: string;
+      file?: File; // Store actual File object for file type
+    }>;
   };
 }
 

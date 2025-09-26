@@ -36,9 +36,8 @@ export function HeadersTab({
   onUpdateHeader,
 }: HeadersTabProps) {
   return (
-    <div className="h-full flex flex-col">
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
+    <ScrollArea className="h-full">
+      <div className="p-4 space-y-4">
           {/* Headers Section */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -187,8 +186,7 @@ export function HeadersTab({
               </div>
             </>
           )}
-        </div>
-      </ScrollArea>
-    </div>
+      </div>
+    </ScrollArea>
   );
 }

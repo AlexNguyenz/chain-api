@@ -252,16 +252,20 @@ export class APIChainExecutor {
     // Mỗi endpoint sử dụng dữ liệu riêng của node, không share context
     const nodeRequestBody = node.data.requestBody || null;
 
-    // Use prepareRequestConfig to get proper config with headers
+    // Use prepareRequestConfig to get proper config with headers and body
     const config = this.prepareRequestConfig(node);
-    config.data = nodeRequestBody; // Override with node-specific data
+
+    // Only use nodeRequestBody as fallback if no body config exists
+    if (!config.data && nodeRequestBody) {
+      config.data = nodeRequestBody;
+    }
 
     const requestData = {
       method,
       path: processedPath, // Hiển thị path đã xử lý
       originalPath: path, // Giữ lại path gốc
       headers: config.headers || { "Content-Type": "application/json" },
-      body: nodeRequestBody,
+      body: config.formDataDisplay || config.data || nodeRequestBody, // Use display format for form-data
       queryParameters: endpointConfig?.queryParameters || [],
       pathVariables: endpointConfig?.pathVariables || {},
     };
@@ -314,6 +318,46 @@ export class APIChainExecutor {
 
         config.headers = { ...config.headers, ...processedHeaders };
       }
+
+      // Process body configuration
+      if (endpointConfig.body) {
+        const bodyConfig = endpointConfig.body;
+
+        if (bodyConfig.type === 'raw' && bodyConfig.content) {
+          // Raw JSON body - no variable processing, use as-is
+          try {
+            config.data = JSON.parse(bodyConfig.content);
+          } catch {
+            // If not valid JSON, send as string
+            config.data = bodyConfig.content;
+          }
+        } else if (bodyConfig.type === 'form-data' && bodyConfig.formData) {
+          // Form data body
+          const formData = new FormData();
+          const formDataDisplay: Record<string, string> = {};
+
+          bodyConfig.formData.forEach((field: any) => {
+            if (field.enabled && field.key) {
+              if (field.type === 'text') {
+                const processedValue = this.processVariables(field.value);
+                formData.append(field.key, processedValue);
+                formDataDisplay[field.key] = processedValue;
+              } else if (field.type === 'file' && field.file) {
+                // Use actual File object for real file upload
+                formData.append(field.key, field.file, field.file.name);
+                formDataDisplay[field.key] = `[FILE: ${field.file.name}] (${(field.file.size / 1024).toFixed(1)} KB)`;
+              }
+            }
+          });
+
+          config.data = formData;
+          config.formDataDisplay = formDataDisplay; // For UI display purposes
+          // Set Content-Type for multipart/form-data
+          // Note: When using FormData with fetch(), browser will automatically set the boundary
+          // So we let the browser handle the full Content-Type header
+          delete config.headers["Content-Type"];
+        }
+      }
     }
 
     // Thêm headers tùy chỉnh nếu có (deprecated, use endpointConfig instead)
@@ -336,19 +380,31 @@ export class APIChainExecutor {
 
     const fetchConfig: RequestInit = {
       method: method.toUpperCase(),
-      headers: {
-        "Content-Type": "application/json",
-        ...config.headers,
-      },
+      headers: config.headers || {},
       signal: AbortSignal.timeout(config.timeout || 30000),
     };
+
+    // Only set default Content-Type if not already set and not FormData
+    const headers = fetchConfig.headers as Record<string, string>;
+    if (!headers["Content-Type"] && !(config.data instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
 
     // Thêm body cho POST, PUT, PATCH
     if (
       ["POST", "PUT", "PATCH"].includes(method.toUpperCase()) &&
       config.data
     ) {
-      fetchConfig.body = JSON.stringify(config.data);
+      if (config.data instanceof FormData) {
+        // FormData doesn't need JSON.stringify
+        fetchConfig.body = config.data;
+      } else if (typeof config.data === 'object') {
+        // JSON data
+        fetchConfig.body = JSON.stringify(config.data);
+      } else {
+        // String data
+        fetchConfig.body = config.data;
+      }
     }
 
     const response = await fetch(url, fetchConfig);

@@ -11,6 +11,7 @@ import {
 import { ConfigHeader } from "./config/config-header";
 import { ParametersTab } from "./config/parameters-tab";
 import { HeadersTab } from "./config/headers-tab";
+import { BodyTab } from "./config/body-tab";
 import { VariablesTab } from "./config/variables-tab";
 import { ActionButtons } from "./config/action-buttons";
 
@@ -63,6 +64,23 @@ export function ConfigPanel({
       enabled: boolean;
     }>
   >([]);
+
+  const [bodyConfig, setBodyConfig] = useState<{
+    type: "form-data" | "raw" | "x-www-form-urlencoded" | "binary";
+    content: string;
+    formData?: Array<{
+      key: string;
+      value: string;
+      type: "text" | "file";
+      enabled: boolean;
+      description?: string;
+      file?: File;
+    }>;
+  }>({
+    type: "raw",
+    content: "",
+    formData: []
+  });
 
   const variables = selectedTemplate?.variables || [];
 
@@ -129,11 +147,27 @@ export function ConfigPanel({
       } else {
         setHeaders([]);
       }
+
+      // Load saved body config
+      if (savedConfig?.body) {
+        setBodyConfig(savedConfig.body);
+      } else {
+        setBodyConfig({
+          type: "raw",
+          content: "",
+          formData: []
+        });
+      }
     } else {
       // Clear when no node selected
       setPathParams([]);
       setQueryParams([]);
       setHeaders([]);
+      setBodyConfig({
+        type: "raw",
+        content: "",
+        formData: []
+      });
     }
   }, [selectedNode, selectedTemplate]);
 
@@ -220,7 +254,7 @@ export function ConfigPanel({
         enabled: header.enabled,
         description: header.description,
       })),
-      body: { type: "raw", content: "" },
+      body: bodyConfig,
     };
 
     updateEndpointConfig(selectedTemplate.id, selectedNode, configToSave);
@@ -251,13 +285,20 @@ export function ConfigPanel({
       // Clear headers
       setHeaders([]);
 
+      // Clear body
+      setBodyConfig({
+        type: "raw",
+        content: "",
+        formData: []
+      });
+
       // Remove from template store
       updateEndpointConfig(selectedTemplate.id, selectedNode, {
         baseUrl: "",
         pathVariables: {},
         queryParameters: [],
         headers: [],
-        body: { type: "raw", content: "" },
+        body: { type: "raw", content: "", formData: [] },
       });
     }
   };
@@ -334,9 +375,11 @@ export function ConfigPanel({
 
 
             <TabsContent value="body" className="flex-1 overflow-hidden mt-0">
-              <div className="p-4 text-sm text-muted-foreground">
-                Body configuration will be implemented here
-              </div>
+              <BodyTab
+                bodyConfig={bodyConfig}
+                variables={variables}
+                onUpdateBody={setBodyConfig}
+              />
             </TabsContent>
           </Tabs>
         </TabsContent>
