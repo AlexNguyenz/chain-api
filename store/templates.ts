@@ -27,6 +27,12 @@ export interface EndpointConfig {
   };
 }
 
+export interface ConditionConfig {
+  extractionPath: string; // JSONPath để extract giá trị từ response trước đó
+  operator: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'not_contains' | 'exists' | 'not_exists';
+  expectedValue: string; // Giá trị để so sánh
+}
+
 export interface Template {
   id: string;
   name: string;
@@ -35,6 +41,7 @@ export interface Template {
   edges: Edge[];
   variables: Variable[];
   endpointConfigs: Record<string, EndpointConfig>; // nodeId -> config
+  conditionConfigs: Record<string, ConditionConfig>; // nodeId -> config
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,6 +58,7 @@ interface TemplateStore {
   updateVariable: (templateId: string, oldName: string, variable: Variable) => void;
   deleteVariable: (templateId: string, name: string) => void;
   updateEndpointConfig: (templateId: string, nodeId: string, config: EndpointConfig) => void;
+  updateConditionConfig: (templateId: string, nodeId: string, config: ConditionConfig) => void;
 }
 
 export const useTemplateStore = create<TemplateStore>((set) => ({
@@ -65,6 +73,7 @@ export const useTemplateStore = create<TemplateStore>((set) => ({
         id: Date.now().toString(),
         variables: template.variables || [],
         endpointConfigs: template.endpointConfigs || {},
+        conditionConfigs: template.conditionConfigs || {},
         createdAt: now,
         updatedAt: now,
       };
@@ -187,6 +196,27 @@ export const useTemplateStore = create<TemplateStore>((set) => ({
           ? {
               ...state.selectedTemplate,
               endpointConfigs: { ...state.selectedTemplate.endpointConfigs, [nodeId]: config },
+              updatedAt: new Date()
+            }
+          : state.selectedTemplate,
+    })),
+
+  updateConditionConfig: (templateId, nodeId, config) =>
+    set((state) => ({
+      templates: state.templates.map((template) =>
+        template.id === templateId
+          ? {
+              ...template,
+              conditionConfigs: { ...template.conditionConfigs, [nodeId]: config },
+              updatedAt: new Date()
+            }
+          : template
+      ),
+      selectedTemplate:
+        state.selectedTemplate?.id === templateId
+          ? {
+              ...state.selectedTemplate,
+              conditionConfigs: { ...state.selectedTemplate.conditionConfigs, [nodeId]: config },
               updatedAt: new Date()
             }
           : state.selectedTemplate,

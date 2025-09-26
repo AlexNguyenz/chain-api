@@ -328,6 +328,7 @@ export function ConfigPanel({
         <FlowControlConfig
           nodeType={selectedNodeData.type}
           nodeData={selectedNodeData}
+          nodeId={selectedNode}
           onUpdate={(updatedData: any) => {
             // Update flow control node data
             if (selectedNode && onNodeDataUpdate) {

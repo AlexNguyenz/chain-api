@@ -1,39 +1,42 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { useTemplateStore } from '@/store/templates'
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useTemplateStore } from "@/store/templates";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface CreateTemplateModalProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
-export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProps) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+export function CreateTemplateModal({
+  isOpen,
+  onClose,
+}: CreateTemplateModalProps) {
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const addTemplate = useTemplateStore((state) => state.addTemplate)
+  const addTemplate = useTemplateStore((state) => state.addTemplate);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
 
     if (!name.trim()) {
-      return
+      return;
     }
 
-    setIsLoading(true)
+    setIsLoading(true);
 
     try {
       addTemplate({
@@ -43,25 +46,26 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
         edges: [],
         variables: [],
         endpointConfigs: {},
-      })
+        conditionConfigs: {},
+      });
 
-      setName('')
-      setDescription('')
-      onClose()
+      setName("");
+      setDescription("");
+      onClose();
     } catch (error) {
-      console.error('Error creating template:', error)
+      console.error("Error creating template:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleClose = () => {
     if (!isLoading) {
-      setName('')
-      setDescription('')
-      onClose()
+      setName("");
+      setDescription("");
+      onClose();
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -104,15 +108,12 @@ export function CreateTemplateModal({ isOpen, onClose }: CreateTemplateModalProp
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={!name.trim() || isLoading}
-            >
-              {isLoading ? 'Creating...' : 'Create Template'}
+            <Button type="submit" disabled={!name.trim() || isLoading}>
+              {isLoading ? "Creating..." : "Create Template"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

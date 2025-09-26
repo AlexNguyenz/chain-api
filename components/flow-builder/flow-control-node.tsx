@@ -107,14 +107,14 @@ export const FlowControlNode = memo(({ data, selected }: NodeProps) => {
             type="source"
             position={Position.Bottom}
             id="false"
-            className="w-3 h-3 !bg-gray-400"
+            className="w-3 h-3 !bg-red-500"
             style={{ left: "30%" }}
           />
           <Handle
             type="source"
             position={Position.Bottom}
             id="true"
-            className="w-3 h-3 !bg-gray-400"
+            className="w-3 h-3 !bg-green-500"
             style={{ left: "70%" }}
           />
         </>

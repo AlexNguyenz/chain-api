@@ -5,6 +5,7 @@ export interface ExecutionContext {
   variables: Record<string, any>;
   stepResults: Record<string, any>;
   currentData: any;
+  lastResponse: any; // Lưu response từ API call cuối cùng
 }
 
 export interface ExecutionStep {
@@ -46,12 +47,8 @@ export class APIChainExecutor {
   private steps: ExecutionStep[];
   private callbacks?: ExecutionCallbacks;
   private template?: Template;
-  private executorId: string;
 
   constructor(nodes: Node[], edges: Edge[], template?: Template) {
-    this.executorId = `exec_${Date.now()}_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
     this.nodes = nodes;
     this.edges = edges;
     this.template = template;
@@ -59,6 +56,7 @@ export class APIChainExecutor {
       variables: {},
       stepResults: {},
       currentData: null,
+      lastResponse: null,
     };
     this.steps = [];
   }
@@ -83,6 +81,7 @@ export class APIChainExecutor {
     try {
       // Reset context
       this.context.currentData = initialData || null;
+      this.context.lastResponse = null;
       this.steps = [];
 
       // Tìm node Start
@@ -137,6 +136,8 @@ export class APIChainExecutor {
         const result = await this.executeEndpoint(node);
         requestData = result.requestData;
         responseData = result.responseData;
+        // Lưu response cuối cùng để dùng cho condition
+        this.context.lastResponse = responseData;
       } else if (node.type === "flowControl") {
         await this.executeFlowControl(node);
       }
@@ -194,11 +195,8 @@ export class APIChainExecutor {
       }
     }
 
-    // Luôn tiếp tục với node tiếp theo (dù success hay error)
-    const nextEdge = this.edges.find((edge) => edge.source === nodeId);
-    if (nextEdge) {
-      await this.executeFromNode(nextEdge.target);
-    }
+    // Tiếp tục với node tiếp theo
+    await this.continueToNextNode(node);
   }
 
   /**
@@ -211,8 +209,38 @@ export class APIChainExecutor {
       if (nextEdge) {
         await this.executeFromNode(nextEdge.target);
       }
+    } else if (node.type === "flowControl") {
+      // Flow control nodes xử lý logic routing riêng
+      await this.handleFlowControlRouting(node);
     }
-    // Flow control nodes sẽ tự xử lý logic tiếp theo
+  }
+
+  /**
+   * Xử lý routing cho flow control nodes
+   */
+  private async handleFlowControlRouting(node: Node): Promise<void> {
+    const { type } = node.data;
+
+    if (type === "condition") {
+      // Xử lý condition node với 2 output paths
+      const conditionResult = await this.evaluateConditionNode(node);
+      const targetEdgeId = conditionResult ? "true" : "false";
+
+      // Tìm edge với sourceHandle phù hợp
+      const nextEdge = this.edges.find(
+        (edge) => edge.source === node.id && edge.sourceHandle === targetEdgeId
+      );
+
+      if (nextEdge) {
+        await this.executeFromNode(nextEdge.target);
+      }
+    } else {
+      // Các flow control khác (start, delay, loop) chỉ có 1 output
+      const nextEdge = this.edges.find((edge) => edge.source === node.id);
+      if (nextEdge) {
+        await this.executeFromNode(nextEdge.target);
+      }
+    }
   }
 
   /**
@@ -246,11 +274,11 @@ export class APIChainExecutor {
         break;
 
       case "condition":
-        // Chỉ là placeholder
+        // Condition node xử lý trong handleFlowControlRouting
         break;
 
       case "loop":
-        // Chỉ là placeholder
+        // Loop node placeholder
         break;
     }
   }
@@ -331,7 +359,7 @@ export class APIChainExecutor {
       if (endpointConfig.headers && endpointConfig.headers.length > 0) {
         const processedHeaders: { [key: string]: string } = {};
 
-        endpointConfig.headers.forEach((header: any) => {
+        endpointConfig.headers.forEach((header) => {
           if (header.enabled && header.key && header.value) {
             // Replace variables in header value
             const processedValue = this.processVariables(header.value);
@@ -359,7 +387,7 @@ export class APIChainExecutor {
           const formData = new FormData();
           const formDataDisplay: Record<string, string> = {};
 
-          bodyConfig.formData.forEach((field: any) => {
+          bodyConfig.formData.forEach((field) => {
             if (field.enabled && field.key) {
               if (field.type === "text") {
                 const processedValue = this.processVariables(field.value);
@@ -560,32 +588,104 @@ export class APIChainExecutor {
   }
 
   /**
-   * Đánh giá điều kiện logic
+   * Đánh giá condition node
    */
-  private evaluateCondition(condition: string): boolean {
-    if (!condition) return true;
+  private async evaluateConditionNode(node: Node): Promise<boolean> {
+    const conditionConfig = this.template?.conditionConfigs?.[node.id];
+    if (!conditionConfig) {
+      return true; // Default to true if no config
+    }
 
     try {
-      // Thay thế variables trong condition
-      const processedCondition = condition.replace(
-        /\$\{([^}]+)\}/g,
-        (_, varName) => {
-          const value = this.getVariableValue(varName);
-          return JSON.stringify(value);
-        }
+      // Dùng chính xác cùng logic với Variable extraction
+      // Extract từ lastResponse (bao gồm cả data wrapper)
+      const extractedValue = this.extractValueFromPath(
+        this.context.lastResponse,
+        conditionConfig.extractionPath
       );
 
-      // Đánh giá expression (cần cẩn thận với security)
-      return new Function("return " + processedCondition)();
+      // Check if path exists (giống như variable extraction)
+      const pathExists = this.pathExists(
+        this.context.lastResponse,
+        conditionConfig.extractionPath
+      );
+
+      // Nếu path không tồn tại, log cảnh báo
+      if (!pathExists) {
+        console.warn(
+          `⚠️ Path does not exist in response: ${conditionConfig.extractionPath}`
+        );
+      }
+
+      // Thực hiện comparison dựa vào operator
+      const comparisonResult = this.compareValues(
+        extractedValue,
+        conditionConfig.operator,
+        conditionConfig.expectedValue
+      );
+
+      return comparisonResult;
     } catch {
       return false;
     }
   }
 
   /**
+   * So sánh values dựa vào operator
+   */
+  private compareValues(
+    extractedValue: unknown,
+    operator: string,
+    expectedValue: string
+  ): boolean {
+    switch (operator) {
+      case "equals":
+        return String(extractedValue) === expectedValue;
+
+      case "not_equals":
+        return String(extractedValue) !== expectedValue;
+
+      case "greater_than":
+        const numExtracted = Number(extractedValue);
+        const numExpected = Number(expectedValue);
+        return (
+          !isNaN(numExtracted) &&
+          !isNaN(numExpected) &&
+          numExtracted > numExpected
+        );
+
+      case "less_than":
+        const numExtracted2 = Number(extractedValue);
+        const numExpected2 = Number(expectedValue);
+        return (
+          !isNaN(numExtracted2) &&
+          !isNaN(numExpected2) &&
+          numExtracted2 < numExpected2
+        );
+
+      case "contains":
+        return String(extractedValue).includes(expectedValue);
+
+      case "not_contains":
+        return !String(extractedValue).includes(expectedValue);
+
+      case "exists":
+        return extractedValue !== undefined && extractedValue !== null;
+
+      case "not_exists":
+        return extractedValue === undefined || extractedValue === null;
+
+      default:
+        console.warn(`Unknown operator: ${operator}`);
+        return false;
+    }
+  }
+
+
+  /**
    * Lấy giá trị variable từ context
    */
-  private getVariableValue(varName: string): any {
+  private getVariableValue(varName: string): unknown {
     // Kiểm tra trong template variables trước
     if (this.template?.variables) {
       const templateVar = this.template.variables.find(
@@ -618,7 +718,7 @@ export class APIChainExecutor {
   /**
    * Extract variables from API response using JSONPath
    */
-  private extractVariablesFromResponse(responseData: any): void {
+  private extractVariablesFromResponse(responseData: unknown): void {
     if (!this.template || !this.template.variables) return;
 
     this.template.variables.forEach((variable) => {
@@ -645,18 +745,9 @@ export class APIChainExecutor {
               variable.name,
               String(extractedValue)
             );
-
-            console.log(
-              `✅ Variable extracted: ${variable.name} = ${String(
-                extractedValue
-              )}`
-            );
           }
-        } catch (error) {
-          console.error(
-            `❌ Failed to extract variable ${variable.name}:`,
-            error
-          );
+        } catch {
+          // Silently ignore extraction errors
         }
       }
     });
@@ -665,7 +756,7 @@ export class APIChainExecutor {
   /**
    * Extract value from response data using JSONPath syntax
    */
-  private extractValueFromPath(data: any, path: string): any {
+  private extractValueFromPath(data: unknown, path: string): unknown {
     // Simple JSONPath implementation for $.data.message syntax
     if (!path.startsWith("$.")) {
       return undefined;
@@ -674,7 +765,7 @@ export class APIChainExecutor {
     // Remove $. prefix and split by dots
     const pathParts = path.substring(2).split(".");
 
-    let current = data;
+    let current: any = data;
     for (let i = 0; i < pathParts.length; i++) {
       const part = pathParts[i];
 
@@ -711,14 +802,14 @@ export class APIChainExecutor {
   /**
    * Check if a JSONPath exists in the data (regardless of value)
    */
-  private pathExists(data: any, path: string): boolean {
+  private pathExists(data: unknown, path: string): boolean {
     if (!path.startsWith("$.")) {
       return false;
     }
 
     const pathParts = path.substring(2).split(".");
 
-    let current = data;
+    let current: any = data;
     for (let i = 0; i < pathParts.length; i++) {
       const part = pathParts[i];
 
