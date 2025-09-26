@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import { QueryProvider } from "@/providers/query-provider";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { Toaster } from "sonner";
 
 import "./globals.css";
 
@@ -36,6 +37,7 @@ export default function RootLayout({
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         <QueryProvider>{children}</QueryProvider>
+        <Toaster position="bottom-right" richColors />
         <GoogleAnalytics gaId="G-HN3CELYPJ3" />
       </body>
     </html>

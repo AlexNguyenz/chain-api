@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 import { useEndpointStore, type Endpoint } from "@/store/endpoints";
 import { HTTPMethod } from "@/constants/http-methods";
 
@@ -68,7 +69,9 @@ export function NewEndpointModal({
     e.preventDefault();
 
     if (!formData.name.trim() || !formData.path.trim()) {
-      alert("Name and Path are required!");
+      toast.warning("Missing Required Fields", {
+        description: "Name and Path are required!",
+      });
       return;
     }
 

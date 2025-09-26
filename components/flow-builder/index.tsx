@@ -8,7 +8,6 @@ import { FlowControlList } from "./flow-control-list";
 import { TemplatesTab } from "@/components/templates/templates-tab";
 import { FlowCanvasWrapper } from "./flow-canvas";
 import { ConfigPanel } from "./config-panel";
-import { FlowExecutor } from "./flow-executor";
 import { type Endpoint } from "@/store/endpoints";
 import { useTemplateStore } from "@/store/templates";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -65,7 +64,7 @@ export function FlowBuilder() {
   };
 
   const handleNodeDataUpdate = (nodeId: string, newData: any) => {
-    const updatedNodes = nodes.map(node =>
+    const updatedNodes = nodes.map((node) =>
       node.id === nodeId
         ? { ...node, data: { ...node.data, ...newData } }
         : node
@@ -77,9 +76,6 @@ export function FlowBuilder() {
       setSelectedNodeData({ ...selectedNodeData, ...newData });
     }
   };
-
-
-
 
   // Auto-save to template when nodes or edges change (debounced)
   useEffect(() => {

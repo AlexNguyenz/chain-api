@@ -18,6 +18,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Play, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { EndpointNode } from "./endpoint-node";
 import { FlowControlNode } from "./flow-control-node";
@@ -171,9 +172,9 @@ export function FlowCanvas({
 
       // Check if template is selected before allowing drop
       if (!selectedTemplateId) {
-        alert(
-          "Please create or select a template first before adding endpoints to your flow."
-        );
+        toast.warning("Template Required", {
+          description: "Please create or select a template first before adding endpoints to your flow.",
+        });
         return;
       }
 
@@ -278,6 +279,18 @@ export function FlowCanvas({
 
   const handleRunFlow = useCallback(async () => {
     if (localNodes.length === 0 || isExecuting) {
+      return;
+    }
+
+    // Check for Start node
+    const hasStartNode = localNodes.some(
+      node => node.type === "flowControl" && node.data.type === "start"
+    );
+
+    if (!hasStartNode) {
+      toast.warning("Missing Start Node", {
+        description: "Please add a Start node to begin your flow execution.",
+      });
       return;
     }
 
