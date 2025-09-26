@@ -14,15 +14,18 @@ import { HeadersTab } from "./config/headers-tab";
 import { BodyTab } from "./config/body-tab";
 import { VariablesTab } from "./config/variables-tab";
 import { ActionButtons } from "./config/action-buttons";
+import { FlowControlConfig } from "./config/flow-control-config";
 
 interface ConfigPanelProps {
   selectedNode: string | null;
-  selectedNodeData?: Endpoint | null;
+  selectedNodeData?: (Endpoint & { type?: string; delayMs?: number }) | null;
+  onNodeDataUpdate?: (nodeId: string, newData: any) => void;
 }
 
 export function ConfigPanel({
   selectedNode,
   selectedNodeData,
+  onNodeDataUpdate,
 }: ConfigPanelProps) {
   const {
     selectedTemplate,
@@ -309,6 +312,28 @@ export function ConfigPanel({
         <ConfigHeader
           selectedNode={selectedNode}
           selectedNodeData={selectedNodeData}
+        />
+      </div>
+    );
+  }
+
+  // Check if this is a flow control node
+  if (selectedNodeData?.type) {
+    return (
+      <div className="h-full flex flex-col">
+        <ConfigHeader
+          selectedNode={selectedNode}
+          selectedNodeData={selectedNodeData}
+        />
+        <FlowControlConfig
+          nodeType={selectedNodeData.type}
+          nodeData={selectedNodeData}
+          onUpdate={(updatedData: any) => {
+            // Update flow control node data
+            if (selectedNode && onNodeDataUpdate) {
+              onNodeDataUpdate(selectedNode, updatedData);
+            }
+          }}
         />
       </div>
     );

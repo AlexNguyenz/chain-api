@@ -64,6 +64,23 @@ export function FlowBuilder() {
     setEdges(newEdges);
   };
 
+  const handleNodeDataUpdate = (nodeId: string, newData: any) => {
+    const updatedNodes = nodes.map(node =>
+      node.id === nodeId
+        ? { ...node, data: { ...node.data, ...newData } }
+        : node
+    );
+    handleNodesChange(updatedNodes);
+
+    // Also update selected node data if it's the same node
+    if (selectedNode === nodeId) {
+      setSelectedNodeData({ ...selectedNodeData, ...newData });
+    }
+  };
+
+
+
+
   // Auto-save to template when nodes or edges change (debounced)
   useEffect(() => {
     // Skip if no template
@@ -134,6 +151,7 @@ export function FlowBuilder() {
           <ConfigPanel
             selectedNode={selectedNode}
             selectedNodeData={selectedNodeData}
+            onNodeDataUpdate={handleNodeDataUpdate}
           />
         </div>
       </div>

@@ -35,6 +35,8 @@ export interface ExecutionCallbacks {
   ) => void;
   onNodeError?: (nodeId: string, error: string) => void;
   onVariableUpdate?: (variableName: string, newValue: string) => void;
+  onDelayStart?: (nodeId: string) => void;
+  onDelayEnd?: (nodeId: string) => void;
 }
 
 export class APIChainExecutor {
@@ -231,7 +233,16 @@ export class APIChainExecutor {
       case "delay":
         // Delay node tạm dừng execution
         const delayMs = (node.data.delayMs as number) || 1000;
+
+        if (this.callbacks?.onDelayStart) {
+          this.callbacks.onDelayStart(node.id);
+        }
+
         await new Promise((resolve) => setTimeout(resolve, delayMs));
+
+        if (this.callbacks?.onDelayEnd) {
+          this.callbacks.onDelayEnd(node.id);
+        }
         break;
 
       case "condition":

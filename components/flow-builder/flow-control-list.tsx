@@ -8,14 +8,13 @@ import {
   Play,
   Square,
   Clock,
-  GitBranch,
-  Repeat
+  GitBranch
 } from "lucide-react";
 
 interface FlowControl {
   id: string;
   name: string;
-  type: "start" | "end" | "delay" | "condition" | "loop";
+  type: "start" | "end" | "delay" | "condition";
   description: string;
   icon: React.ComponentType<{ className?: string }>;
   iconColor: string;
@@ -53,14 +52,6 @@ const flowControls: FlowControl[] = [
     description: "Branch based on conditions",
     icon: GitBranch,
     iconColor: "text-yellow-600",
-  },
-  {
-    id: "loop-1",
-    name: "Loop",
-    type: "loop",
-    description: "Iterate over items",
-    icon: Repeat,
-    iconColor: "text-orange-600",
   },
 ];
 

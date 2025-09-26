@@ -9,7 +9,7 @@ import { type Endpoint } from "@/store/endpoints";
 
 interface ConfigHeaderProps {
   selectedNode: string | null;
-  selectedNodeData?: Endpoint | null;
+  selectedNodeData?: (Endpoint & { type?: string; delayMs?: number }) | null;
 }
 
 export function ConfigHeader({ selectedNode, selectedNodeData }: ConfigHeaderProps) {
@@ -33,7 +33,7 @@ export function ConfigHeader({ selectedNode, selectedNodeData }: ConfigHeaderPro
   return (
     <div className="p-4">
       <h2 className="text-lg font-semibold">Step Configuration</h2>
-      {selectedNodeData ? (
+      {selectedNodeData && !selectedNodeData.type ? (
         <div className="mt-3 space-y-3">
           <div className="space-y-2">
             <Badge
@@ -54,6 +54,16 @@ export function ConfigHeader({ selectedNode, selectedNodeData }: ConfigHeaderPro
                 {selectedNodeData.description}
               </div>
             )}
+          </div>
+        </div>
+      ) : selectedNodeData?.type ? (
+        <div className="mt-3 space-y-3">
+          <div className="text-sm font-medium capitalize">{selectedNodeData.type} Node</div>
+          <div className="text-xs text-muted-foreground">
+            {selectedNodeData.type === 'delay' && 'Wait for specified time before continuing'}
+            {selectedNodeData.type === 'start' && 'Begin the flow execution'}
+            {selectedNodeData.type === 'end' && 'Terminate the flow'}
+            {selectedNodeData.type === 'condition' && 'Branch based on conditions'}
           </div>
         </div>
       ) : (

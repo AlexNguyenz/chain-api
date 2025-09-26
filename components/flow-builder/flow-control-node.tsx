@@ -2,7 +2,7 @@
 
 import { memo } from "react";
 import { Handle, Position, NodeProps } from "@xyflow/react";
-import { Play, Square, Clock, GitBranch, Repeat } from "lucide-react";
+import { Play, Square, Clock, GitBranch, Repeat, Loader2 } from "lucide-react";
 
 interface FlowControlData {
   id: string;
@@ -10,6 +10,7 @@ interface FlowControlData {
   type: "start" | "end" | "delay" | "condition" | "loop";
   description: string;
   iconColor: string;
+  isDelaying?: boolean;
 }
 
 const iconMap = {
@@ -22,7 +23,7 @@ const iconMap = {
 
 export const FlowControlNode = memo(({ data, selected }: NodeProps) => {
   const controlData = data as unknown as FlowControlData;
-  const Icon = iconMap[controlData.type];
+  const Icon = controlData.isDelaying && controlData.type === "delay" ? Loader2 : iconMap[controlData.type];
 
   // Start and End nodes are circular
   if (controlData.type === "start" || controlData.type === "end") {
@@ -92,7 +93,11 @@ export const FlowControlNode = memo(({ data, selected }: NodeProps) => {
       />
 
       <div className="flex items-center gap-2 justify-center">
-        <Icon className={`h-4 w-4 ${controlData.iconColor}`} />
+        <Icon
+          className={`h-4 w-4 ${controlData.iconColor} ${
+            controlData.isDelaying && controlData.type === "delay" ? "animate-spin" : ""
+          }`}
+        />
         <span className="font-medium text-sm">{controlData.name}</span>
       </div>
 

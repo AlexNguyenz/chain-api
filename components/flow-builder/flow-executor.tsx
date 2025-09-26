@@ -48,6 +48,7 @@ export function FlowExecutor({ nodes, edges }: FlowExecutorProps) {
   const [executionResult, setExecutionResult] = useState<ExecutionResult | null>(null);
   const [initialData, setInitialData] = useState("{}");
   const [expandedStep, setExpandedStep] = useState<string | null>(null);
+  const [delayProgress, setDelayProgress] = useState<Record<string, { remaining: number; total: number }>>({});
 
   const { selectedTemplate, templates } = useTemplateStore();
 
@@ -56,6 +57,7 @@ export function FlowExecutor({ nodes, edges }: FlowExecutorProps) {
 
     setIsExecuting(true);
     setExecutionResult(null);
+    setDelayProgress({});
 
     try {
       // Parse initial data
@@ -250,13 +252,35 @@ export function FlowExecutor({ nodes, edges }: FlowExecutorProps) {
                               step.status === "running" && "animate-spin"
                             )}
                           />
-                          <div>
+                          <div className="flex-1">
                             <div className="font-medium">
                               {step.data.name || step.data.type || "Unknown"}
                             </div>
                             <div className="text-xs text-muted-foreground">
                               {step.nodeType} • {step.data.path || step.data.type}
                             </div>
+
+                            {/* Delay Progress Bar */}
+                            {step.data.type === "delay" && delayProgress[step.nodeId] && step.status === 'running' && (
+                              <div className="mt-2">
+                                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                                  <span>Delaying...</span>
+                                  <span>
+                                    {Math.max(0, Math.ceil(delayProgress[step.nodeId].remaining / 1000))}s remaining
+                                  </span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2">
+                                  <div
+                                    className="bg-blue-500 h-2 rounded-full transition-all duration-100"
+                                    style={{
+                                      width: `${Math.max(0, Math.min(100,
+                                        ((delayProgress[step.nodeId].total - delayProgress[step.nodeId].remaining) / delayProgress[step.nodeId].total) * 100
+                                      ))}%`
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="text-right text-sm">
@@ -296,12 +320,53 @@ export function FlowExecutor({ nodes, edges }: FlowExecutorProps) {
 
           {/* Executing State */}
           {isExecuting && !executionResult && (
-            <div className="text-center text-muted-foreground py-12">
-              <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin" />
-              <p className="text-lg font-medium">Executing Flow...</p>
-              <p className="text-sm">
-                Running your API chain, please wait
-              </p>
+            <div className="space-y-4">
+              <div className="text-center text-muted-foreground py-8">
+                <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin" />
+                <p className="text-lg font-medium">Executing Flow...</p>
+                <p className="text-sm">
+                  Running your API chain, please wait
+                </p>
+              </div>
+
+              {/* Show delay progress for running delay nodes */}
+              {Object.entries(delayProgress).length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Active Delay</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {Object.entries(delayProgress).map(([nodeId, progress]) => {
+                      const node = nodes.find(n => n.id === nodeId);
+                      return (
+                        <div key={nodeId} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="font-medium">
+                              {(node?.data as any)?.name || 'Delay Node'}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {Math.max(0, Math.ceil(progress.remaining / 1000))}s remaining
+                            </span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-3">
+                            <div
+                              className="bg-blue-500 h-3 rounded-full transition-all duration-100"
+                              style={{
+                                width: `${Math.max(0, Math.min(100,
+                                  ((progress.total - progress.remaining) / progress.total) * 100
+                                ))}%`
+                              }}
+                            />
+                          </div>
+                          <div className="text-xs text-muted-foreground text-center">
+                            {Math.max(0, Math.ceil((progress.total - progress.remaining) / 1000))}s / {Math.ceil(progress.total / 1000)}s
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
         </div>

@@ -345,6 +345,36 @@ export function FlowCanvas({
             }
           }
         },
+        onDelayStart: (nodeId) => {
+          setLocalNodes((nds) =>
+            nds.map((node) =>
+              node.id === nodeId
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      isDelaying: true,
+                    },
+                  }
+                : node
+            )
+          );
+        },
+        onDelayEnd: (nodeId) => {
+          setLocalNodes((nds) =>
+            nds.map((node) =>
+              node.id === nodeId
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      isDelaying: false,
+                    },
+                  }
+                : node
+            )
+          );
+        },
       });
 
       // Save execution results to template
