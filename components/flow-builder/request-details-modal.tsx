@@ -117,14 +117,75 @@ export function RequestDetailsModal({
                 </div>
               </div>
 
-              <h3 className="text-sm font-medium text-gray-700 mb-3">
-                Request Details
-              </h3>
-              <div className="bg-gray-50 p-3 rounded font-mono text-xs overflow-hidden">
-                <pre className="whitespace-pre-wrap break-all">
-                  {JSON.stringify(nodeData.requestData, null, 2)}
-                </pre>
+              {/* Headers */}
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                  Headers
+                </h3>
+                <div className="bg-gray-50 rounded border">
+                  {nodeData.requestData?.headers &&
+                  Object.keys(nodeData.requestData.headers).length > 0 ? (
+                    <div className="divide-y divide-gray-200">
+                      {Object.entries(nodeData.requestData.headers).map(
+                        ([key, value]) => (
+                          <div key={key} className="flex py-2 px-3">
+                            <div className="font-mono text-xs text-gray-600 w-32 flex-shrink-0">
+                              {key}:
+                            </div>
+                            <div className="font-mono text-xs text-gray-900 flex-1 break-all">
+                              {String(value)}
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-3 text-gray-500 text-xs">No headers</div>
+                  )}
+                </div>
               </div>
+
+              {/* Body */}
+              {nodeData.requestData?.body && (
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">
+                    Body
+                  </h3>
+                  <div className="bg-gray-50 p-3 rounded font-mono text-xs overflow-hidden">
+                    <pre className="whitespace-pre-wrap break-all">
+                      {typeof nodeData.requestData.body === "object"
+                        ? JSON.stringify(nodeData.requestData.body, null, 2)
+                        : String(nodeData.requestData.body)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              {/* Query Parameters */}
+              {nodeData.requestData?.queryParameters &&
+                nodeData.requestData.queryParameters.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-gray-700 mb-3">
+                      Query Parameters
+                    </h3>
+                    <div className="bg-gray-50 rounded border">
+                      <div className="divide-y divide-gray-200">
+                        {nodeData.requestData.queryParameters
+                          .filter((param: any) => param.enabled && param.key)
+                          .map((param: any, index: number) => (
+                            <div key={index} className="flex py-2 px-3">
+                              <div className="font-mono text-xs text-gray-600 w-32 flex-shrink-0">
+                                {param.key}:
+                              </div>
+                              <div className="font-mono text-xs text-gray-900 flex-1 break-all">
+                                {param.value}
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
             </div>
           )}
 

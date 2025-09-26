@@ -156,15 +156,21 @@ export class APIChainExecutor {
           endpointConfig
         );
 
-        // Sử dụng dữ liệu riêng của node
+        // Use same logic as success case to prepare config
+        const config = this.prepareRequestConfig(node);
         const nodeRequestBody = node.data.requestBody || null;
+
+        // Only use nodeRequestBody as fallback if no body config exists
+        if (!config.data && nodeRequestBody) {
+          config.data = nodeRequestBody;
+        }
 
         requestData = {
           method,
           path: processedPath,
           originalPath: path,
-          headers: { "Content-Type": "application/json" },
-          body: nodeRequestBody,
+          headers: config.headers || { "Content-Type": "application/json" },
+          body: config.formDataDisplay || config.data || nodeRequestBody,
           queryParameters: endpointConfig?.queryParameters || [],
           pathVariables: endpointConfig?.pathVariables || {},
         };

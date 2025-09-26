@@ -73,7 +73,7 @@ export function FlowCanvas({
     // Preserve execution status when syncing nodes
     setLocalNodes((currentNodes) => {
       return nodes.map((newNode) => {
-        const existingNode = currentNodes.find(n => n.id === newNode.id);
+        const existingNode = currentNodes.find((n) => n.id === newNode.id);
         if (existingNode?.data?.executionStatus) {
           // Preserve execution status and data
           return {
@@ -83,7 +83,7 @@ export function FlowCanvas({
               executionStatus: existingNode.data.executionStatus,
               requestData: existingNode.data.requestData,
               responseData: existingNode.data.responseData,
-            }
+            },
           };
         }
         return newNode;
@@ -99,7 +99,9 @@ export function FlowCanvas({
         // Check if this is an endpoint node
         if (node.type === "endpoint" && node.data.id) {
           // Find the updated endpoint data from store
-          const updatedEndpoint = endpoints.find((ep) => ep.id === node.data.id);
+          const updatedEndpoint = endpoints.find(
+            (ep) => ep.id === node.data.id
+          );
           if (updatedEndpoint) {
             // Check if data actually changed
             const dataChanged =
@@ -291,9 +293,16 @@ export function FlowCanvas({
       setLocalNodes(cleanNodes);
 
       // Get fresh template from store to ensure latest variables
-      const freshTemplate = selectedTemplate ? templates.find(t => t.id === selectedTemplate.id) || selectedTemplate : undefined;
+      const freshTemplate = selectedTemplate
+        ? templates.find((t) => t.id === selectedTemplate.id) ||
+          selectedTemplate
+        : undefined;
 
-      const executor = new APIChainExecutor(cleanNodes, localEdges, freshTemplate);
+      const executor = new APIChainExecutor(
+        cleanNodes,
+        localEdges,
+        freshTemplate
+      );
 
       // Execute with real-time status callbacks
       await executor.executeWithCallbacks({
@@ -322,13 +331,17 @@ export function FlowCanvas({
         onVariableUpdate: (variableName, newValue) => {
           // Update variable in template store
           if (freshTemplate) {
-            const existingVariable = freshTemplate.variables.find(v => v.name === variableName);
+            const existingVariable = freshTemplate.variables.find(
+              (v) => v.name === variableName
+            );
             if (existingVariable) {
               // Update existing variable
-              useTemplateStore.getState().updateVariable(freshTemplate.id, variableName, {
-                ...existingVariable,
-                value: newValue
-              });
+              useTemplateStore
+                .getState()
+                .updateVariable(freshTemplate.id, variableName, {
+                  ...existingVariable,
+                  value: newValue,
+                });
             }
           }
         },
@@ -346,7 +359,15 @@ export function FlowCanvas({
     } finally {
       setIsExecuting(false);
     }
-  }, [localNodes, localEdges, updateNodeStatus, isExecuting, selectedTemplate, templates, debouncedSave]);
+  }, [
+    localNodes,
+    localEdges,
+    updateNodeStatus,
+    isExecuting,
+    selectedTemplate,
+    templates,
+    debouncedSave,
+  ]);
 
   const handleClearFlow = useCallback(() => {
     if (nodes.length === 0 && edges.length === 0) {
@@ -402,14 +423,22 @@ export function FlowCanvas({
         onNodesChange={(changes) => {
           onNodesChange(changes);
           // Check if position change ended (drag finished)
-          if (changes.some(change => change.type === 'position' && !change.dragging)) {
+          if (
+            changes.some(
+              (change) => change.type === "position" && !change.dragging
+            )
+          ) {
             debouncedSave();
           }
         }}
         onEdgesChange={(changes) => {
           onEdgesChange(changes);
           // Save immediately for edge changes (connect/delete)
-          if (changes.some(change => change.type === 'add' || change.type === 'remove')) {
+          if (
+            changes.some(
+              (change) => change.type === "add" || change.type === "remove"
+            )
+          ) {
             // Get fresh edges after changes
             setTimeout(() => {
               if (reactFlowInstance) {
