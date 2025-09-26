@@ -320,22 +320,24 @@ export function ConfigPanel({
   // Check if this is a flow control node
   if (selectedNodeData?.type) {
     return (
-      <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col overflow-hidden">
         <ConfigHeader
           selectedNode={selectedNode}
           selectedNodeData={selectedNodeData}
         />
-        <FlowControlConfig
-          nodeType={selectedNodeData.type}
-          nodeData={selectedNodeData}
-          nodeId={selectedNode}
-          onUpdate={(updatedData: any) => {
-            // Update flow control node data
-            if (selectedNode && onNodeDataUpdate) {
-              onNodeDataUpdate(selectedNode, updatedData);
-            }
-          }}
-        />
+        <div className="flex-1 overflow-hidden">
+          <FlowControlConfig
+            nodeType={selectedNodeData.type}
+            nodeData={selectedNodeData}
+            nodeId={selectedNode}
+            onUpdate={(updatedData: any) => {
+              // Update flow control node data
+              if (selectedNode && onNodeDataUpdate) {
+                onNodeDataUpdate(selectedNode, updatedData);
+              }
+            }}
+          />
+        </div>
       </div>
     );
   }

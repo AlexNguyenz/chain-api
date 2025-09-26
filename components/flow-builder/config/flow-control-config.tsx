@@ -5,7 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useTemplateStore, ConditionConfig } from "@/store/templates";
 
 interface FlowControlConfigProps {
@@ -25,14 +31,18 @@ export function FlowControlConfig({
   const { selectedTemplate, updateConditionConfig } = useTemplateStore();
 
   // Condition config state
-  const [conditionConfig, setConditionConfig] = useState<ConditionConfig>(() => {
-    const existingConfig = selectedTemplate?.conditionConfigs?.[nodeId];
-    return existingConfig || {
-      extractionPath: '',
-      operator: 'equals',
-      expectedValue: ''
-    };
-  });
+  const [conditionConfig, setConditionConfig] = useState<ConditionConfig>(
+    () => {
+      const existingConfig = selectedTemplate?.conditionConfigs?.[nodeId];
+      return (
+        existingConfig || {
+          extractionPath: "",
+          operator: "equals",
+          expectedValue: "",
+        }
+      );
+    }
+  );
 
   // Update local state when nodeData changes
   useEffect(() => {
@@ -69,9 +79,9 @@ export function FlowControlConfig({
       });
     } else if (nodeType === "condition") {
       const defaultConfig: ConditionConfig = {
-        extractionPath: '',
-        operator: 'equals',
-        expectedValue: ''
+        extractionPath: "",
+        operator: "equals",
+        expectedValue: "",
       };
       setConditionConfig(defaultConfig);
       if (selectedTemplate) {
@@ -119,12 +129,18 @@ export function FlowControlConfig({
                 id="extraction-path"
                 type="text"
                 value={conditionConfig.extractionPath}
-                onChange={(e) => setConditionConfig(prev => ({ ...prev, extractionPath: e.target.value }))}
+                onChange={(e) =>
+                  setConditionConfig((prev) => ({
+                    ...prev,
+                    extractionPath: e.target.value,
+                  }))
+                }
                 placeholder="$.data.status"
                 className="font-mono text-sm"
               />
               <div className="text-xs text-muted-foreground">
-                JSONPath to extract value from previous response (e.g., $.data.status, $.message)
+                JSONPath to extract value from previous response (e.g.,
+                $.data.status, $.message)
               </div>
             </div>
 
@@ -134,7 +150,12 @@ export function FlowControlConfig({
               </Label>
               <Select
                 value={conditionConfig.operator}
-                onValueChange={(value) => setConditionConfig(prev => ({ ...prev, operator: value as any }))}
+                onValueChange={(value) =>
+                  setConditionConfig((prev) => ({
+                    ...prev,
+                    operator: value as any,
+                  }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select operator" />
@@ -152,7 +173,7 @@ export function FlowControlConfig({
               </Select>
             </div>
 
-            {!['exists', 'not_exists'].includes(conditionConfig.operator) && (
+            {!["exists", "not_exists"].includes(conditionConfig.operator) && (
               <div className="space-y-2">
                 <Label htmlFor="expected-value" className="text-sm font-medium">
                   Expected Value
@@ -161,11 +182,17 @@ export function FlowControlConfig({
                   id="expected-value"
                   type="text"
                   value={conditionConfig.expectedValue}
-                  onChange={(e) => setConditionConfig(prev => ({ ...prev, expectedValue: e.target.value }))}
+                  onChange={(e) =>
+                    setConditionConfig((prev) => ({
+                      ...prev,
+                      expectedValue: e.target.value,
+                    }))
+                  }
                   placeholder="success"
                 />
                 <div className="text-xs text-muted-foreground">
-                  Value to compare against (not needed for exists/not_exists operators)
+                  Value to compare against (not needed for exists/not_exists
+                  operators)
                 </div>
               </div>
             )}
@@ -173,8 +200,20 @@ export function FlowControlConfig({
             <div className="p-3 bg-muted rounded-lg">
               <div className="text-sm font-medium mb-2">How it works:</div>
               <div className="text-xs text-muted-foreground space-y-1">
-                <div>• <span className="text-green-600 font-medium">True path (right)</span>: When condition is met</div>
-                <div>• <span className="text-red-600 font-medium">False path (left)</span>: When condition fails</div>
+                <div>
+                  •{" "}
+                  <span className="text-green-600 font-medium">
+                    True path (right)
+                  </span>
+                  : When condition is met
+                </div>
+                <div>
+                  •{" "}
+                  <span className="text-red-600 font-medium">
+                    False path (left)
+                  </span>
+                  : When condition fails
+                </div>
                 <div>• Extraction path uses previous API response data</div>
               </div>
             </div>
@@ -204,13 +243,14 @@ export function FlowControlConfig({
 
   return (
     <div className="h-full flex flex-col">
-      <ScrollArea className="flex-1">
-        {renderConfig()}
-      </ScrollArea>
+      <ScrollArea className="flex-1 overflow-auto">{renderConfig()}</ScrollArea>
 
       {/* Action buttons for configurable nodes */}
       {(nodeType === "delay" || nodeType === "condition") && (
-        <div className="border-t bg-background p-4">
+        <div className="border-t bg-background p-4 flex flex-col gap-2">
+          <p className="text-sm text-red-500 text-right font-medium">
+            Note: Click save to save your changes
+          </p>
           <div className="flex gap-3 justify-end">
             <Button
               variant="outline"
@@ -219,10 +259,7 @@ export function FlowControlConfig({
             >
               Reset
             </Button>
-            <Button
-              onClick={handleSave}
-              className="min-w-20"
-            >
+            <Button onClick={handleSave} className="min-w-20">
               Save
             </Button>
           </div>
